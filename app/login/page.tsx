@@ -68,7 +68,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 p-4">
       <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
         <div className="text-center mb-8">
-          <h1 className="text-3xl font-bold text-slate-900 mb-2"> BunkSafe</h1>
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">BunkSafe</h1>
           <p className="text-slate-500 text-sm">
             {isSignUp ? "Create your account and start tracking" : "Welcome back to your dashboard"}
           </p>
