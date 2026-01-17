@@ -18,6 +18,27 @@ body {
   font-family: Arial, Helvetica, sans-serif;
 }
 
+/* Mobile optimizations */
+html {
+  -webkit-text-size-adjust: 100%;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+}
+
+/* Ensure content doesn't overflow on mobile */
+* {
+  max-width: 100%;
+  box-sizing: border-box;
+}
+
+/* Handle safe areas for mobile devices */
+@supports (padding: max(0px)) {
+  body {
+    padding-left: env(safe-area-inset-left);
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
 /* Custom scrollbar styles */
 .no-scrollbar::-webkit-scrollbar {
   display: none;
