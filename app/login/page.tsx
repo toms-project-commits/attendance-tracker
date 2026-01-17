@@ -65,12 +65,12 @@ export default function LoginPage() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
         <div className="text-center mb-8">
-          <h1 className="text-2xl font-bold text-slate-900">Student Tracker</h1>
-          <p className="text-slate-500 text-sm mt-2">
-            {isSignUp ? "Create your account" : "Welcome back"}
+          <h1 className="text-3xl font-bold text-slate-900 mb-2">🎓 BunkSafe</h1>
+          <p className="text-slate-500 text-sm">
+            {isSignUp ? "Create your account and start tracking" : "Welcome back to your dashboard"}
           </p>
         </div>
 

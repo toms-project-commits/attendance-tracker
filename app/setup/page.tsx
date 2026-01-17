@@ -161,7 +161,7 @@ export default function SetupPage() {
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <CalIcon /> Semester Setup
           </h1>
-          <p className="text-slate-400 mt-2">Let's set up your calendar.</p>
+          <p className="text-slate-400 mt-2">Let's set up your calendar.</p> {/* eslint-disable-line react/no-unescaped-entities */}
         </div>
 
         {checkingAuth ? (
@@ -231,8 +231,8 @@ export default function SetupPage() {
             <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start text-sm text-blue-700">
               <Info className="shrink-0 mt-0.5" size={18} />
               <p>
-                <strong>How to use:</strong> Does your college have a rule like "Second and Fourth Saturdays are off"? 
-                If yes, tap the <strong>2nd Sat</strong> and <strong>4th Sat</strong> buttons below. 
+                <strong>How to use:</strong> Does your college have a rule like "Second and Fourth Saturdays are off"? {/* eslint-disable-line react/no-unescaped-entities */}
+                If yes, tap the <strong>2nd Sat</strong> and <strong>4th Sat</strong> buttons below.
                 This will automatically mark them as holidays for the whole semester.
               </p>
             </div>
@@ -325,7 +325,6 @@ export default function SetupPage() {
                         }
 
                         // Determine Visual State
-                        const isHoliday = isManualHoliday || isSunday || isSaturdayOff;
                         const isAutoHoliday = isSunday || isSaturdayOff;
 
                         return (

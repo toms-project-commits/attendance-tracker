@@ -30,15 +30,15 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-slate-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-2xl shadow-xl p-8 border border-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 p-4">
+      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
         {/* Back Button */}
-        <Link href="/login" className="flex items-center text-slate-400 hover:text-slate-600 mb-6 text-sm">
-          <ArrowLeft size={16} className="mr-1" /> Back to Login
+        <Link href="/login" className="flex items-center text-slate-400 hover:text-slate-600 mb-8 text-sm font-medium">
+          <ArrowLeft size={16} className="mr-2" /> Back to Login
         </Link>
         
-        <h1 className="text-2xl font-bold text-slate-900 mb-2">Reset Password</h1>
-        <p className="text-slate-500 text-sm mb-6">Enter your email to receive recovery instructions.</p>
+        <h1 className="text-3xl font-bold text-slate-900 mb-2">Reset Password</h1>
+        <p className="text-slate-500 text-sm mb-6">Enter your email address and we will send you a link to reset your password.</p>
 
         <form onSubmit={handleReset} className="space-y-4">
           <div>

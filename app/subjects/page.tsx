@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, BookOpen, AlertCircle } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, BookOpen } from 'lucide-react';
 import Link from 'next/link';
 
 // Define what a "Subject" looks like
@@ -140,10 +140,13 @@ export default function SubjectsPage() {
         </div>
 
         {/* ADD NEW SUBJECT FORM */}
-        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100">
-          <h2 className="text-lg font-bold text-slate-800 mb-4 flex items-center gap-2">
-            <Plus size={20} className="text-blue-600" /> Add New Subject
-          </h2>
+        <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
+          <div>
+            <h2 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
+              <Plus size={20} className="text-blue-600" /> Add New Subject
+            </h2>
+            <p className="text-xs text-slate-500">Set a target attendance percentage for each subject to track your progress.</p>
+          </div>
           
           <form onSubmit={handleAddSubject} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -212,9 +215,12 @@ export default function SubjectsPage() {
           {loading ? (
             <p className="text-slate-500 text-sm">Loading...</p>
           ) : subjects.length === 0 ? (
-            <div className="text-center p-8 bg-white rounded-2xl border border-slate-100 border-dashed">
-              <BookOpen className="mx-auto text-slate-300 mb-2" size={32} />
-              <p className="text-slate-500">No subjects added yet.</p>
+            <div className="text-center p-12 bg-gradient-to-br from-slate-50 to-blue-50 rounded-3xl border border-dashed border-slate-200">
+              <div className="bg-blue-100 p-4 rounded-full w-fit mx-auto mb-4">
+                <BookOpen className="text-blue-600 mx-auto" size={32} />
+              </div>
+              <p className="text-slate-700 font-bold text-lg">No subjects added yet</p>
+              <p className="text-slate-500 text-sm mt-2">Create your first subject to start tracking attendance.</p>
             </div>
           ) : (
             <div className="grid grid-cols-1 gap-4">

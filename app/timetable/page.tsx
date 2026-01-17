@@ -1,5 +1,5 @@
 'use client';
-import { useEffect, useState } from 'react';
+import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Plus, Trash2, Clock, Coffee, Trophy, Library } from 'lucide-react';
@@ -41,18 +41,7 @@ export default function TimetablePage() {
   const [selectedType, setSelectedType] = useState('SUBJECT');
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
 
-  // 1. LOAD DATA & PREFERENCES
-  useEffect(() => {
-    // SSR-safe localStorage access
-    if (typeof window !== 'undefined') {
-      const savedFormat = localStorage.getItem('time_format_preference');
-      if (savedFormat === '24') setIs24Hour(true);
-    }
-    fetchData();
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, []);
-
-  const fetchData = async () => {
+  const fetchData = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -64,7 +53,7 @@ export default function TimetablePage() {
         .from('subjects')
         .select('id, name, color_hex')
         .eq('user_id', user.id);
-      
+
       if (subError) {
         console.error('Error fetching subjects:', subError);
       } else if (subData) {
@@ -85,13 +74,15 @@ export default function TimetablePage() {
       } else if (slotData) {
         const formattedSlots = slotData.map((s) => {
           // Safe time string parsing
-          const startTime = s.start_time && typeof s.start_time === 'string' 
-            ? s.start_time.length >= 5 ? s.start_time.slice(0, 5) : s.start_time 
+          const startTime = s.start_time && typeof s.start_time === 'string'
+            ? s.start_time.length >= 5 ? s.start_time.slice(0, 5) : s.start_time
             : '09:00';
           const endTime = s.end_time && typeof s.end_time === 'string'
             ? s.end_time.length >= 5 ? s.end_time.slice(0, 5) : s.end_time
             : '10:00';
-          
+
+          const subjectData = Array.isArray(s.subjects) ? s.subjects[0] : s.subjects;
+
           return {
             id: s.id,
             day_of_week: s.day_of_week,
@@ -99,8 +90,8 @@ export default function TimetablePage() {
             end_time: endTime,
             slot_type: s.slot_type as Slot['slot_type'],
             subject_id: s.subject_id,
-            subject_name: s.subjects?.name,
-            color: s.subjects?.color_hex
+            subject_name: subjectData?.name,
+            color: subjectData?.color_hex
           };
         });
         setSlots(formattedSlots);
@@ -108,7 +99,17 @@ export default function TimetablePage() {
     } catch (error) {
       console.error('Unexpected error fetching data:', error);
     }
-  };
+  }, [router]);
+
+  // 1. LOAD DATA & PREFERENCES
+  useEffect(() => {
+    // SSR-safe localStorage access
+    if (typeof window !== 'undefined') {
+      const savedFormat = localStorage.getItem('time_format_preference');
+      if (savedFormat === '24') setIs24Hour(true);
+    }
+    fetchData();
+  }, [fetchData]);
 
   // --- TIME HELPERS ---
 
