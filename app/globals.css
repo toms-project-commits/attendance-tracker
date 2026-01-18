@@ -1,4 +1,6 @@
-@import "tailwindcss";
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
 
 :root {
   --background: #ffffff;
@@ -58,4 +60,55 @@ html {
 *:focus-visible {
   outline: 2px solid #3b82f6;
   outline-offset: 2px;
+}
+
+/* Desktop/Laptop Optimizations */
+@media (min-width: 1024px) {
+  /* Max width for large screens to prevent content from stretching too wide */
+  body {
+    max-width: 100vw;
+  }
+
+  /* Better spacing for desktop */
+  .container {
+    max-width: 1280px;
+    margin-left: auto;
+    margin-right: auto;
+  }
+
+  /* Hover effects for interactive elements on desktop */
+  button:hover,
+  a:hover {
+    transform: translateY(-1px);
+  }
+
+  /* Better typography for larger screens */
+  body {
+    font-size: 16px;
+    line-height: 1.6;
+  }
+
+  /* Smooth scrolling for desktop */
+  html {
+    scroll-behavior: smooth;
+  }
+}
+
+/* Tablet optimizations */
+@media (min-width: 768px) and (max-width: 1023px) {
+  body {
+    font-size: 15px;
+  }
+}
+
+/* Print styles */
+@media print {
+  body {
+    background: white;
+    color: black;
+  }
+  
+  nav, button, .no-print {
+    display: none;
+  }
 }
