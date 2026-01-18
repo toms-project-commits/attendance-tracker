@@ -65,7 +65,12 @@ const Dashboard = memo(function Dashboard() {
     checkAuth();
   }, [checkAuth]);
 
-  const userName = useMemo(() => user?.email?.split('@')[0] || 'Student', [user]);
+  const userName = useMemo(() => {
+    if (profile?.username) {
+      return profile.username;
+    }
+    return user?.email?.split('@')[0] || 'Student';
+  }, [user, profile]);
 
   const stats = useMemo(() => {
     if (!profile?.semester_start) {

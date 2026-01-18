@@ -27,25 +27,102 @@ export default function SetupPage() {
   const [loading, setLoading] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [checkingAuth, setCheckingAuth] = useState(true);
+  const [checkingUsername, setCheckingUsername] = useState(false);
   
   // --- STATE ---
+  const [username, setUsername] = useState('');
+  const [usernameError, setUsernameError] = useState<string | null>(null);
+  const [usernameAvailable, setUsernameAvailable] = useState<boolean | null>(null);
   const [startDate, setStartDate] = useState('');
   const [endDate, setEndDate] = useState('');
   const [saturdayOffs, setSaturdayOffs] = useState<number[]>([]); 
   const [manualHolidays, setManualHolidays] = useState<Date[]>([]);
 
-  // Check authentication on mount
+  // Check authentication on mount and load existing username if any
   useEffect(() => {
     const checkAuth = async () => {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         router.push('/login');
       } else {
+        // Check if user already has a username
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('username')
+          .eq('id', user.id)
+          .single();
+        
+        if (profile?.username) {
+          setUsername(profile.username);
+          setUsernameAvailable(true);
+        }
         setCheckingAuth(false);
       }
     };
     checkAuth();
   }, [router]);
+
+  // Validate and check username availability
+  const checkUsernameAvailability = async (usernameToCheck: string) => {
+    if (!usernameToCheck) {
+      setUsernameError(null);
+      setUsernameAvailable(null);
+      return;
+    }
+
+    // Validate format (3-20 chars, alphanumeric + underscore)
+    const usernameRegex = /^[a-zA-Z0-9_]{3,20}$/;
+    if (!usernameRegex.test(usernameToCheck)) {
+      setUsernameError('Username must be 3-20 characters (letters, numbers, underscore only)');
+      setUsernameAvailable(false);
+      return;
+    }
+
+    setCheckingUsername(true);
+    setUsernameError(null);
+
+    try {
+      const { data: { user } } = await supabase.auth.getUser();
+      
+      // Check if username is taken
+      const { data, error } = await supabase
+        .from('profiles')
+        .select('id, username')
+        .ilike('username', usernameToCheck)
+        .single();
+
+      if (error && error.code !== 'PGRST116') { // PGRST116 = no rows returned
+        throw error;
+      }
+
+      // If data exists and it's not the current user's username
+      if (data && data.id !== user?.id) {
+        setUsernameError('This username is already taken');
+        setUsernameAvailable(false);
+      } else {
+        setUsernameError(null);
+        setUsernameAvailable(true);
+      }
+    } catch (err) {
+      console.error('Error checking username:', err);
+      setUsernameError('Could not verify username availability');
+      setUsernameAvailable(false);
+    } finally {
+      setCheckingUsername(false);
+    }
+  };
+
+  // Debounced username check
+  useEffect(() => {
+    const timeoutId = setTimeout(() => {
+      if (username && username.length >= 3) {
+        checkUsernameAvailability(username);
+      }
+    }, 500);
+
+    return () => clearTimeout(timeoutId);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [username]);
 
   // --- LOGIC: SATURDAY TOGGLE ---
   const toggleSaturdayRule = (weekNum: number) => {
@@ -67,6 +144,16 @@ export default function SetupPage() {
   // --- LOGIC: SAVE EVERYTHING ---
   const handleSave = async () => {
     // Validation
+    if (!username) {
+      setError('Please choose a username');
+      return;
+    }
+
+    if (!usernameAvailable) {
+      setError('Please choose a valid and available username');
+      return;
+    }
+
     if (!startDate || !endDate) {
       setError('Please select both start and end dates');
       return;
@@ -90,11 +177,25 @@ export default function SetupPage() {
         return;
       }
 
-      // 1. Upsert Profile (create if doesn't exist, update if exists)
+      // 1. Check if profile exists and already has a username
+      const { data: existingProfile } = await supabase
+        .from('profiles')
+        .select('username')
+        .eq('id', user.id)
+        .single();
+
+      // If profile exists with a different username, prevent change
+      if (existingProfile?.username && existingProfile.username !== username) {
+        setError('Username cannot be changed once set');
+        return;
+      }
+
+      // 2. Upsert Profile (create if doesn't exist, update if exists)
       const { error: profileError } = await supabase
         .from('profiles')
         .upsert({
           id: user.id,
+          username: username.toLowerCase(), // Store in lowercase for consistency
           semester_start: startDate,
           semester_end: endDate,
           saturday_offs: saturdayOffs,
@@ -105,13 +206,13 @@ export default function SetupPage() {
       
       if (profileError) throw profileError;
 
-      // 2. Delete existing holidays for this user to prevent duplicates
+      // 3. Delete existing holidays for this user to prevent duplicates
       await supabase
         .from('holidays')
         .delete()
         .eq('user_id', user.id);
 
-      // 3. Save Specific Holidays
+      // 4. Save Specific Holidays
       if (manualHolidays.length > 0) {
         const holidayData = manualHolidays.map(date => ({
           user_id: user.id,
@@ -178,6 +279,65 @@ export default function SetupPage() {
               <p className="text-sm font-medium">{error}</p>
             </div>
           )}
+
+          {/* STEP 0: USERNAME */}
+          <section className="space-y-4">
+            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b pb-2">Choose Your Username</h3>
+            <div className="bg-amber-50 p-4 rounded-xl flex gap-3 items-start text-sm text-amber-800 border border-amber-200">
+              <Info className="shrink-0 mt-0.5" size={18} />
+              <p>
+                <strong>Important:</strong> Your username is permanent and cannot be changed later. Choose wisely!
+              </p>
+            </div>
+            <div>
+              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
+                Username (3-20 characters)
+              </label>
+              <div className="relative">
+                <input 
+                  id="username"
+                  type="text" 
+                  className={cn(
+                    "w-full p-3 bg-slate-50 border rounded-xl focus:ring-2 outline-none pr-10",
+                    usernameError ? "border-red-300 focus:ring-red-500" : 
+                    usernameAvailable === true ? "border-green-300 focus:ring-green-500" :
+                    "border-slate-200 focus:ring-blue-500"
+                  )}
+                  value={username}
+                  onChange={(e) => {
+                    const val = e.target.value.toLowerCase().replace(/[^a-z0-9_]/g, '');
+                    setUsername(val);
+                    setUsernameAvailable(null);
+                  }}
+                  placeholder="e.g. john_doe123"
+                  maxLength={20}
+                  required
+                  disabled={loading}
+                />
+                {checkingUsername && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2">
+                    <div className="animate-spin rounded-full h-5 w-5 border-b-2 border-blue-600"></div>
+                  </div>
+                )}
+                {!checkingUsername && usernameAvailable === true && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-green-600">
+                    ✓
+                  </div>
+                )}
+                {!checkingUsername && usernameAvailable === false && (
+                  <div className="absolute right-3 top-1/2 -translate-y-1/2 text-red-600">
+                    ✗
+                  </div>
+                )}
+              </div>
+              {usernameError && (
+                <p className="text-xs text-red-600 mt-1 font-medium">{usernameError}</p>
+              )}
+              {usernameAvailable === true && !usernameError && (
+                <p className="text-xs text-green-600 mt-1 font-medium">✓ Username is available!</p>
+              )}
+            </div>
+          </section>
 
           {/* STEP 1: DATE RANGE */}
           <section className="space-y-4">
@@ -355,7 +515,7 @@ export default function SetupPage() {
           {/* SAVE BUTTON */}
           <button
             onClick={handleSave}
-            disabled={!startDate || !endDate || loading}
+            disabled={!username || !usernameAvailable || !startDate || !endDate || loading || checkingUsername}
             className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Save semester setup and continue"
           >

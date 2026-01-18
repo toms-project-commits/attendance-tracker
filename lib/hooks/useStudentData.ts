@@ -5,6 +5,7 @@ import { supabase } from '@/lib/supabase';
 
 export type StudentProfile = {
   id: string;
+  username?: string | null;
   semester_start?: string | null;
   semester_end?: string | null;
   saturday_offs?: number[] | null;
