@@ -7,7 +7,7 @@
 
 -- First, check and fix any timetable slots where start_time >= end_time
 UPDATE timetable_slots 
-SET end_time = (start_time::time + interval '1 hour')::time::text
+SET end_time = (start_time::time + interval '1 hour')::time
 WHERE start_time >= end_time OR start_time IS NULL OR end_time IS NULL;
 
 -- ============================================
