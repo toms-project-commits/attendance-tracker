@@ -60,7 +60,35 @@ ALTER TABLE timetable_slots ADD CONSTRAINT valid_time_order
   CHECK (start_time < end_time);
 
 -- ============================================
--- PART 5: Add Unique Constraints
+-- PART 5: Clean Up Duplicate Data Before Adding Constraints
+-- ============================================
+
+-- Remove duplicate attendance logs, keeping only the most recent one
+DELETE FROM attendance_logs a
+WHERE id NOT IN (
+  SELECT DISTINCT ON (user_id, subject_id, date) id
+  FROM attendance_logs
+  ORDER BY user_id, subject_id, date, created_at DESC NULLS LAST
+);
+
+-- Remove duplicate timetable slots, keeping only the most recent one
+DELETE FROM timetable_slots t
+WHERE id NOT IN (
+  SELECT DISTINCT ON (user_id, day_of_week, start_time, slot_type) id
+  FROM timetable_slots
+  ORDER BY user_id, day_of_week, start_time, slot_type, created_at DESC NULLS LAST
+);
+
+-- Remove duplicate holidays, keeping only the most recent one
+DELETE FROM holidays h
+WHERE id NOT IN (
+  SELECT DISTINCT ON (user_id, date) id
+  FROM holidays
+  ORDER BY user_id, date, created_at DESC NULLS LAST
+);
+
+-- ============================================
+-- PART 6: Add Unique Constraints
 -- ============================================
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_timetable_slot 
@@ -73,7 +101,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_holiday
   ON holidays(user_id, date);
 
 -- ============================================
--- PART 6: Create Auto-Update Function and Triggers
+-- PART 7: Create Auto-Update Function and Triggers
 -- ============================================
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -101,7 +129,7 @@ CREATE TRIGGER update_attendance_logs_updated_at BEFORE UPDATE ON attendance_log
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- PART 7: Add Performance Indexes
+-- PART 8: Add Performance Indexes
 -- ============================================
 
 CREATE INDEX IF NOT EXISTS idx_subjects_user_created ON subjects(user_id, created_at DESC);
@@ -109,7 +137,7 @@ CREATE INDEX IF NOT EXISTS idx_logs_date_desc ON attendance_logs(user_id, date D
 CREATE INDEX IF NOT EXISTS idx_holidays_date_asc ON holidays(user_id, date ASC);
 
 -- ============================================
--- PART 8: Add Status and Type Constraints
+-- PART 9: Add Status and Type Constraints
 -- ============================================
 
 ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS valid_attendance_status;
@@ -121,7 +149,7 @@ ALTER TABLE timetable_slots ADD CONSTRAINT valid_slot_type
   CHECK (slot_type IN ('SUBJECT', 'BREAK', 'SPORTS', 'LIBRARY', 'EXAM'));
 
 -- ============================================
--- PART 9: Fix RLS Policy Performance Issues
+-- PART 10: Fix RLS Policy Performance Issues
 -- ============================================
 
 -- Fix profiles RLS policy
@@ -155,7 +183,7 @@ CREATE POLICY "Users manage their own logs" ON attendance_logs
   WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- ============================================
--- PART 10: Fix Function Security Issue
+-- PART 11: Fix Function Security Issue
 -- ============================================
 
 -- Drop and recreate handle_new_user function with proper search_path
@@ -180,7 +208,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- ============================================
--- PART 11: Add Table Documentation
+-- PART 12: Add Table Documentation
 -- ============================================
 
 COMMENT ON TABLE profiles IS 'User profiles with semester configuration';
