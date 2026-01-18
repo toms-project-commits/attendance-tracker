@@ -11,7 +11,25 @@ SET end_time = (start_time::time + interval '1 hour')::time
 WHERE start_time >= end_time OR start_time IS NULL OR end_time IS NULL;
 
 -- ============================================
--- PART 2: Add Timestamps (if not already added)
+-- PART 2: Add Username Column (if not already added)
+-- ============================================
+
+-- Add username column to profiles table
+ALTER TABLE profiles ADD COLUMN IF NOT EXISTS username TEXT;
+
+-- Create unique index on username (case-insensitive)
+CREATE UNIQUE INDEX IF NOT EXISTS idx_profiles_username_unique ON profiles(LOWER(username));
+
+-- Add index for faster username lookups
+CREATE INDEX IF NOT EXISTS idx_profiles_username ON profiles(username);
+
+-- Add constraint to ensure username follows rules (drop first if exists)
+ALTER TABLE profiles DROP CONSTRAINT IF EXISTS username_format;
+ALTER TABLE profiles ADD CONSTRAINT username_format 
+CHECK (username ~ '^[a-zA-Z0-9_]{3,20}$');
+
+-- ============================================
+-- PART 3: Add Timestamps (if not already added)
 -- ============================================
 
 ALTER TABLE profiles ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
@@ -29,7 +47,7 @@ ALTER TABLE attendance_logs ADD COLUMN IF NOT EXISTS updated_at TIMESTAMPTZ DEFA
 ALTER TABLE holidays ADD COLUMN IF NOT EXISTS created_at TIMESTAMPTZ DEFAULT NOW();
 
 -- ============================================
--- PART 3: Add Foreign Key Constraints with CASCADE
+-- PART 4: Add Foreign Key Constraints with CASCADE
 -- ============================================
 
 ALTER TABLE timetable_slots DROP CONSTRAINT IF EXISTS timetable_slots_subject_id_fkey;
@@ -41,7 +59,7 @@ ALTER TABLE attendance_logs ADD CONSTRAINT attendance_logs_subject_id_fkey
   FOREIGN KEY (subject_id) REFERENCES subjects(id) ON DELETE CASCADE;
 
 -- ============================================
--- PART 4: Add Validation Constraints (Fixed)
+-- PART 5: Add Validation Constraints (Fixed)
 -- ============================================
 
 -- Target percentage must be 0-100
@@ -60,7 +78,7 @@ ALTER TABLE timetable_slots ADD CONSTRAINT valid_time_order
   CHECK (start_time < end_time);
 
 -- ============================================
--- PART 5: Clean Up Duplicate Data Before Adding Constraints
+-- PART 6: Clean Up Duplicate Data Before Adding Constraints
 -- ============================================
 
 -- Remove duplicate attendance logs, keeping only the most recent one
@@ -88,7 +106,7 @@ WHERE id NOT IN (
 );
 
 -- ============================================
--- PART 6: Add Unique Constraints
+-- PART 7: Add Unique Constraints
 -- ============================================
 
 CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_timetable_slot 
@@ -101,7 +119,7 @@ CREATE UNIQUE INDEX IF NOT EXISTS idx_unique_holiday
   ON holidays(user_id, date);
 
 -- ============================================
--- PART 7: Create Auto-Update Function and Triggers
+-- PART 8: Create Auto-Update Function and Triggers
 -- ============================================
 
 CREATE OR REPLACE FUNCTION update_updated_at_column()
@@ -129,7 +147,7 @@ CREATE TRIGGER update_attendance_logs_updated_at BEFORE UPDATE ON attendance_log
     FOR EACH ROW EXECUTE FUNCTION update_updated_at_column();
 
 -- ============================================
--- PART 8: Add Performance Indexes
+-- PART 9: Add Performance Indexes
 -- ============================================
 
 CREATE INDEX IF NOT EXISTS idx_subjects_user_created ON subjects(user_id, created_at DESC);
@@ -137,7 +155,7 @@ CREATE INDEX IF NOT EXISTS idx_logs_date_desc ON attendance_logs(user_id, date D
 CREATE INDEX IF NOT EXISTS idx_holidays_date_asc ON holidays(user_id, date ASC);
 
 -- ============================================
--- PART 9: Add Status and Type Constraints
+-- PART 10: Add Status and Type Constraints
 -- ============================================
 
 ALTER TABLE attendance_logs DROP CONSTRAINT IF EXISTS valid_attendance_status;
@@ -149,7 +167,7 @@ ALTER TABLE timetable_slots ADD CONSTRAINT valid_slot_type
   CHECK (slot_type IN ('SUBJECT', 'BREAK', 'SPORTS', 'LIBRARY', 'EXAM'));
 
 -- ============================================
--- PART 10: Fix RLS Policy Performance Issues
+-- PART 11: Fix RLS Policy Performance Issues
 -- ============================================
 
 -- Fix profiles RLS policy
@@ -183,7 +201,7 @@ CREATE POLICY "Users manage their own logs" ON attendance_logs
   WITH CHECK (user_id = (SELECT auth.uid()));
 
 -- ============================================
--- PART 11: Fix Function Security Issue
+-- PART 12: Fix Function Security Issue
 -- ============================================
 
 -- Drop and recreate handle_new_user function with proper search_path
@@ -208,7 +226,7 @@ CREATE TRIGGER on_auth_user_created
   FOR EACH ROW EXECUTE FUNCTION handle_new_user();
 
 -- ============================================
--- PART 12: Add Table Documentation
+-- PART 13: Add Table Documentation
 -- ============================================
 
 COMMENT ON TABLE profiles IS 'User profiles with semester configuration';
