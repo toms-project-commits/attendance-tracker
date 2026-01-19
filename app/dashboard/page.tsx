@@ -286,8 +286,8 @@ const Dashboard = memo(function Dashboard() {
         {/* WELCOME BANNER */}
         <div className="border-[3px] border-black bg-blue-500 text-white p-6 md:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white">
           <div className="flex items-center justify-between gap-6 flex-col lg:flex-row">
-            <div className="flex-1">
-              <h2 className="text-3xl md:text-4xl font-black mb-3">
+            <div className="flex-1 min-w-0">
+              <h2 className="text-3xl md:text-4xl font-black mb-3 break-words">
                 Welcome back, {userName}! 👋
               </h2>
               <p className="text-lg md:text-xl font-bold opacity-90">

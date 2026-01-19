@@ -351,6 +351,13 @@ export default function LoginPage() {
             🎯 Track attendance • 📊 Get insights • ✅ Stay safe
           </p>
         </div>
+
+        {/* Attribution */}
+        <div className="mt-4 text-center">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
+            A project by Thomas George
+          </p>
+        </div>
       </div>
     </div>
   );

@@ -390,16 +390,16 @@ export default function SubjectsPage() {
                     editingId === sub.id && "ring-4 ring-blue-500"
                   )}
                 >
-                  <div className="flex items-center justify-between">
-                    <div className="flex items-center gap-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div className="flex items-center gap-4 min-w-0 flex-1">
                       {/* Color indicator */}
                       <div 
-                        className="w-4 h-16 border-[2px] border-black dark:border-white" 
+                        className="w-4 h-16 border-[2px] border-black dark:border-white flex-shrink-0" 
                         style={{ backgroundColor: sub.color_hex }}
                       />
-                      <div>
-                        <h3 className="font-black text-lg text-black dark:text-white">{sub.name}</h3>
-                        <div className="flex items-center gap-2 mt-1">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="font-black text-lg text-black dark:text-white break-words">{sub.name}</h3>
+                        <div className="flex items-center gap-2 mt-1 flex-wrap">
                           <span className="text-sm font-bold text-gray-600 dark:text-gray-400">Target:</span>
                           <span 
                             className="px-2 py-0.5 text-sm font-black border-[2px] border-black dark:border-white text-white"
