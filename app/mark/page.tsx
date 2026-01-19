@@ -3,13 +3,13 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, X, Ban, Calendar, Save, Loader2, Plus } from 'lucide-react';
+import { ArrowLeft, Check, X, Ban, Calendar, Save, Loader2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
 import Link from 'next/link';
 import { format, getDay, parseISO, addDays, subDays, startOfDay, isSameDay, isBefore } from 'date-fns';
 import { clsx } from 'clsx';
 
 type ClassItem = {
-  id?: string; // For extra classes
+  id?: string;
   timetable_id?: string;
   subject_id: string;
   subject_name: string;
@@ -17,7 +17,7 @@ type ClassItem = {
   start_time: string;
   end_time: string;
   status: 'PRESENT' | 'ABSENT' | 'CANCELLED' | null;
-  is_extra?: boolean; // Flag for extra classes
+  is_extra?: boolean;
 };
 
 type Subject = {
@@ -31,7 +31,6 @@ export default function MarkAttendancePage() {
   const [loading, setLoading] = useState(true);
   const [saving, setSaving] = useState(false);
 
-  // ✅ KEY FIX: Initialize date using date-fns to ensure it matches Analytics format exactly
   const [date, setDate] = useState(() => format(new Date(), 'yyyy-MM-dd'));
 
   const [classes, setClasses] = useState<ClassItem[]>([]);
@@ -65,7 +64,6 @@ export default function MarkAttendancePage() {
     setDate(format(newDate, 'yyyy-MM-dd'));
   }, [date]);
 
-  // 1. Fetch Schedule whenever the date changes
   useEffect(() => {
     fetchSchedule();
     fetchSubjects();
@@ -102,11 +100,9 @@ export default function MarkAttendancePage() {
         return;
       }
 
-      // A. Calculate DB Day (1=Mon ... 7=Sun) based on selected date
-      const jsDay = getDay(parseISO(date)); // returns 0 for Sunday
+      const jsDay = getDay(parseISO(date));
       const dbDay = jsDay === 0 ? 7 : jsDay;
 
-      // B. Fetch Timetable for this day
       const { data: timetable, error: timetableError } = await supabase
         .from('timetable_slots')
         .select(`
@@ -122,7 +118,6 @@ export default function MarkAttendancePage() {
         console.error('Error fetching timetable:', timetableError);
       }
 
-      // C. Fetch Existing Logs (Strict string match on date)
       const { data: logs, error: logsError } = await supabase
         .from('attendance_logs')
         .select('subject_id, status')
@@ -134,11 +129,9 @@ export default function MarkAttendancePage() {
       }
 
       if (timetable) {
-        // Merge Timetable + Logs
         const merged: ClassItem[] = timetable.map((slot) => {
           const existingLog = logs?.find(l => l.subject_id === slot.subject_id);
 
-          // Safe time string parsing
           const startTime = slot.start_time && typeof slot.start_time === 'string'
             ? slot.start_time.length >= 5 ? slot.start_time.slice(0, 5) : slot.start_time
             : '09:00';
@@ -170,10 +163,8 @@ export default function MarkAttendancePage() {
     }
   };
 
-  // 2. Handle button clicks (Local state only)
   const handleSetStatus = (index: number, status: ClassItem['status']) => {
     const updated = [...classes];
-    // If clicking the already selected status, unselect it (toggle off)
     if (updated[index].status === status) {
       updated[index].status = null;
     } else {
@@ -182,22 +173,18 @@ export default function MarkAttendancePage() {
     setClasses(updated);
   };
 
-  // 3. Save to Database
   const handleSave = async () => {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
     if (!user) return;
 
     try {
-      // Step A: Delete all existing logs for this specific user & date
-      // This handles "Unmarking" and prevents duplicates.
       await supabase
         .from('attendance_logs')
         .delete()
         .eq('user_id', user.id)
         .eq('date', date);
 
-      // Step B: Prepare new logs (only for items that have a status)
       const logsToInsert = classes
         .filter(c => c.status !== null)
         .map(c => ({
@@ -207,7 +194,6 @@ export default function MarkAttendancePage() {
           status: c.status
         }));
 
-      // Step C: Insert
       if (logsToInsert.length > 0) {
         const { error } = await supabase.from('attendance_logs').insert(logsToInsert);
         if (error) throw error;
@@ -223,7 +209,6 @@ export default function MarkAttendancePage() {
     }
   };
 
-  // Add extra class functionality
   const addExtraClass = useCallback(() => {
     if (!selectedSubjectId) {
       alert('Please select a subject');
@@ -234,7 +219,7 @@ export default function MarkAttendancePage() {
     if (!selectedSubject) return;
 
     const newExtraClass: ClassItem = {
-      id: `extra_${Date.now()}`, // Temporary ID for UI
+      id: `extra_${Date.now()}`,
       subject_id: selectedSubjectId,
       subject_name: selectedSubject.name,
       color: selectedSubject.color_hex,
@@ -251,9 +236,6 @@ export default function MarkAttendancePage() {
     setExtraEndTime('10:00');
   }, [selectedSubjectId, subjects, extraStartTime, extraEndTime]);
 
-
-
-  // Helper: Format "14:00" to "2:00 PM"
   const formatTime = (time: string) => {
     if (!time || typeof time !== 'string') return '--:--';
     const [h, m] = time.split(':');
@@ -265,170 +247,260 @@ export default function MarkAttendancePage() {
     return `${displayHour}:${m} ${ampm}`;
   };
 
+  const isToday = isSameDay(parseISO(date), startOfDay(new Date()));
+  const isPast = isBefore(parseISO(date), startOfDay(new Date())) && !isToday;
+
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 transition-colors">
+    <div className="min-h-screen pb-48" style={{ background: 'var(--background)' }}>
       
       {/* HEADER */}
-      <div className="bg-white dark:bg-slate-900 p-4 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-        <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
-          <div className="flex items-center gap-4 flex-1">
-            <Link href="/dashboard" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-              <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
+      <div className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white p-4 sticky top-0 z-40 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
+        <div className="max-w-2xl mx-auto">
+          <div className="flex items-center gap-4 mb-4">
+            <Link 
+              href="/dashboard" 
+              className={clsx(
+                "p-3 border-[3px] border-black bg-white",
+                "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                "transition-all duration-150",
+                "dark:bg-slate-700 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              )}
+            >
+              <ArrowLeft size={20} className="text-black dark:text-white" />
             </Link>
-            <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-slate-800 dark:text-white">Mark Attendance</h1>
-              <p className="text-xs text-slate-400 dark:text-slate-500">Select status & confirm below • Edit past dates anytime</p>
+            <div className="flex-1">
+              <h1 className="text-xl md:text-2xl font-black text-black dark:text-white">
+                ✏️ Mark Attendance
+              </h1>
+              <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                Select status for each class
+              </p>
             </div>
           </div>
 
-          {/* Quick Date Navigation & Date Picker */}
-          <div className="flex items-center gap-2 flex-shrink-0">
-            {/* Quick Date Navigation */}
+          {/* Date Navigation */}
+          <div className="flex items-center gap-2 flex-wrap">
+            {/* Navigation Buttons */}
             <div className="flex gap-1">
               <button
                 onClick={() => navigateDate('prev')}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                className={clsx(
+                  "p-2 border-[3px] border-black bg-white",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:bg-slate-700 dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                )}
                 aria-label="Previous day"
               >
-                ←
+                <ChevronLeft size={18} className="text-black dark:text-white" />
               </button>
 
               <button
                 onClick={() => navigateDate('today')}
-                className="px-3 py-2 text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
+                className={clsx(
+                  "px-4 py-2 border-[3px] border-black font-black text-sm",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "transition-all duration-150",
+                  isToday 
+                    ? "bg-blue-500 text-white" 
+                    : "bg-white text-black dark:bg-slate-700 dark:text-white",
+                  "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                )}
               >
-                Today
+                TODAY
               </button>
 
               <button
                 onClick={() => navigateDate('next')}
-                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
+                className={clsx(
+                  "p-2 border-[3px] border-black bg-white",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:bg-slate-700 dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                )}
                 aria-label="Next day"
               >
-                →
+                <ChevronRight size={18} className="text-black dark:text-white" />
               </button>
             </div>
 
-            {/* Date Picker */}
-            <div className="relative w-[140px] sm:w-auto sm:min-w-[140px]">
-                 <input
-                   type="date"
-                   value={date}
-                   onChange={(e) => setDate(e.target.value)}
-                   className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
-                   aria-label="Select date for attendance"
-                 />
-                 <div className={clsx("flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-xs font-bold border transition-colors",
-                   isSameDay(parseISO(date), startOfDay(new Date()))
-                     ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700"
-                     : isBefore(parseISO(date), startOfDay(new Date()))
-                       ? "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-700"
-                       : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
-                 )}>
-                   <Calendar size={14} />
-                   <span className="hidden sm:inline">{format(parseISO(date), 'MMM d, yyyy')}</span>
-                   <span className="sm:hidden">{format(parseISO(date), 'MMM d')}</span>
-                   {isSameDay(parseISO(date), startOfDay(new Date())) && <span className="ml-1">•</span>}
-                   {isBefore(parseISO(date), startOfDay(new Date())) && date !== format(new Date(), 'yyyy-MM-dd') && <span className="ml-1 hidden sm:inline">• Past</span>}
-                 </div>
+            {/* Date Picker Display */}
+            <div className="relative flex-1 min-w-[160px]">
+              <input
+                type="date"
+                value={date}
+                onChange={(e) => setDate(e.target.value)}
+                className="absolute inset-0 opacity-0 cursor-pointer w-full h-full z-10"
+                aria-label="Select date for attendance"
+              />
+              <div 
+                className={clsx(
+                  "flex items-center gap-2 px-4 py-2 border-[3px] border-black font-bold text-sm",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]",
+                  isToday 
+                    ? "bg-blue-100 text-blue-800 dark:bg-blue-900/50 dark:text-blue-300"
+                    : isPast
+                      ? "bg-orange-100 text-orange-800 dark:bg-orange-900/50 dark:text-orange-300"
+                      : "bg-white text-black dark:bg-slate-700 dark:text-white"
+                )}
+              >
+                <Calendar size={16} />
+                <span>{format(parseISO(date), 'EEE, MMM d, yyyy')}</span>
+                {isToday && <span className="px-2 py-0.5 bg-blue-500 text-white text-xs font-black">TODAY</span>}
+                {isPast && <span className="px-2 py-0.5 bg-orange-500 text-white text-xs font-black">PAST</span>}
+              </div>
             </div>
-          </div>
-        </div>
 
-        {/* Action Buttons */}
-        <div className="flex gap-2">
-          <button
-            onClick={() => setShowAddExtraModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-700 dark:hover:bg-green-600 transition-colors shadow-sm"
-          >
-            <Plus size={16} /> Add Extra Class
-          </button>
+            {/* Add Extra Class Button */}
+            <button
+              onClick={() => setShowAddExtraModal(true)}
+              className={clsx(
+                "flex items-center gap-2 px-4 py-2 border-[3px] border-black bg-green-500 text-white font-black text-sm",
+                "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                "transition-all duration-150",
+                "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+              )}
+            >
+              <Plus size={16} /> EXTRA
+            </button>
+          </div>
         </div>
       </div>
 
       {/* CLASS LIST */}
-      <div className="max-w-xl mx-auto p-4 space-y-4">
+      <div className="max-w-2xl mx-auto p-4 space-y-4">
         {/* Info Banner for Past Dates */}
-        {isBefore(parseISO(date), startOfDay(new Date())) && classes.length > 0 && (
-          <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-2xl p-3 text-sm text-orange-700 dark:text-orange-400">
-            <p className="font-medium">📝 Editing past attendance</p>
-            <p className="text-xs mt-1">You can update attendance records for past dates. Changes will be reflected in analytics.</p>
+        {isPast && classes.length > 0 && (
+          <div className="border-[3px] border-black bg-orange-400 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white">
+            <p className="font-black text-black">📝 Editing past attendance</p>
+            <p className="text-sm font-semibold text-black/80 mt-1">
+              Changes will be reflected in your analytics.
+            </p>
           </div>
         )}
         
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
-             <Loader2 className="animate-spin mb-2" />
-             <p>Loading schedule...</p>
+          <div className="flex flex-col items-center justify-center py-20">
+            <div className="border-[3px] border-black bg-yellow-400 p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white">
+              <Loader2 className="animate-spin mx-auto mb-2 text-black" size={32} />
+              <p className="font-bold text-black">Loading schedule...</p>
+            </div>
           </div>
         ) : classes.length === 0 ? (
-          <div className="text-center py-12 flex flex-col items-center">
-            <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-full mb-3">
-              <Check size={24} className="text-slate-400 dark:text-slate-500" />
+          <div className="border-[3px] border-black border-dashed bg-white p-8 text-center dark:bg-slate-800 dark:border-white">
+            <div className="w-16 h-16 bg-green-500 border-[3px] border-black dark:border-white mx-auto mb-4 flex items-center justify-center">
+              <Check className="text-white" size={32} />
             </div>
-            <p className="text-slate-500 dark:text-slate-400 font-bold">No classes scheduled.</p>
-            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Enjoy your free time!</p>
+            <p className="text-xl font-black text-black dark:text-white">No classes scheduled!</p>
+            <p className="text-base font-semibold text-gray-600 dark:text-gray-400 mt-2">
+              Enjoy your free time! 🎉
+            </p>
           </div>
         ) : (
           classes.map((cls, idx) => (
-            <div key={idx} className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
-              
+            <div 
+              key={idx} 
+              className={clsx(
+                "border-[3px] border-black bg-white p-5",
+                "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              )}
+            >
               {/* Class Info */}
-              <div className="flex items-center gap-3 mb-4">
-                <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: cls.color }} />
-                <div>
-                  <h3 className="font-bold text-slate-800 dark:text-white">{cls.subject_name}</h3>
-                  <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
-                    {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
+              <div className="flex items-center gap-4 mb-4">
+                <div 
+                  className="w-3 h-14 border-[2px] border-black dark:border-white" 
+                  style={{ backgroundColor: cls.color }} 
+                />
+                <div className="flex-1">
+                  <h3 className="font-black text-lg text-black dark:text-white">{cls.subject_name}</h3>
+                  <div className="text-sm font-bold text-gray-600 dark:text-gray-400">
+                    🕐 {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
                   </div>
                 </div>
+                {cls.is_extra && (
+                  <span className="px-2 py-1 text-xs font-black bg-purple-500 text-white border-[2px] border-black dark:border-white">
+                    EXTRA
+                  </span>
+                )}
               </div>
 
-              {/* ACTION BUTTONS */}
-              <div className="grid grid-cols-3 gap-2">
+              {/* ACTION BUTTONS - Neo-Brutalist Style */}
+              <div className="grid grid-cols-3 gap-3">
+                {/* PRESENT Button */}
                 <button
                   onClick={() => handleSetStatus(idx, 'PRESENT')}
                   className={clsx(
-                    "py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2",
+                    "py-4 flex flex-col items-center justify-center gap-1 transition-all duration-150",
+                    "border-[3px] border-black font-black",
                     cls.status === 'PRESENT'
-                      ? "bg-green-50 dark:bg-green-900/30 border-green-500 dark:border-green-600 text-green-700 dark:text-green-400 font-bold shadow-sm"
-                      : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-green-200 dark:hover:border-green-700"
+                      ? "bg-green-500 text-white shadow-none translate-x-[2px] translate-y-[2px]"
+                      : "bg-green-100 text-green-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                    "dark:border-white",
+                    cls.status === 'PRESENT' 
+                      ? "dark:shadow-none"
+                      : "dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] dark:hover:shadow-[5px_5px_0px_0px_rgba(255,255,255,1)]"
                   )}
                   aria-label={`Mark ${cls.subject_name} as present`}
                   aria-pressed={cls.status === 'PRESENT'}
                 >
-                  <Check size={20} /> <span className="text-[10px] font-bold">PRESENT</span>
+                  <Check size={24} /> 
+                  <span className="text-xs">PRESENT</span>
                 </button>
 
+                {/* ABSENT Button */}
                 <button
                   onClick={() => handleSetStatus(idx, 'ABSENT')}
                   className={clsx(
-                    "py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2",
+                    "py-4 flex flex-col items-center justify-center gap-1 transition-all duration-150",
+                    "border-[3px] border-black font-black",
                     cls.status === 'ABSENT'
-                      ? "bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-600 text-red-700 dark:text-red-400 font-bold shadow-sm"
-                      : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-red-200 dark:hover:border-red-700"
+                      ? "bg-red-500 text-white shadow-none translate-x-[2px] translate-y-[2px]"
+                      : "bg-red-100 text-red-800 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                    "dark:border-white",
+                    cls.status === 'ABSENT' 
+                      ? "dark:shadow-none"
+                      : "dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] dark:hover:shadow-[5px_5px_0px_0px_rgba(255,255,255,1)]"
                   )}
                   aria-label={`Mark ${cls.subject_name} as absent`}
                   aria-pressed={cls.status === 'ABSENT'}
                 >
-                  <X size={20} /> <span className="text-[10px] font-bold">ABSENT</span>
+                  <X size={24} /> 
+                  <span className="text-xs">ABSENT</span>
                 </button>
 
+                {/* CANCELLED Button */}
                 <button
                   onClick={() => handleSetStatus(idx, 'CANCELLED')}
                   className={clsx(
-                    "py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2",
+                    "py-4 flex flex-col items-center justify-center gap-1 transition-all duration-150",
+                    "border-[3px] border-black font-black",
                     cls.status === 'CANCELLED'
-                      ? "bg-slate-100 dark:bg-slate-700 border-slate-500 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold shadow-sm"
-                      : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-500"
+                      ? "bg-gray-600 text-white shadow-none translate-x-[2px] translate-y-[2px]"
+                      : "bg-gray-200 text-gray-700 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                    "dark:border-white",
+                    cls.status === 'CANCELLED' 
+                      ? "dark:shadow-none"
+                      : "dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] dark:hover:shadow-[5px_5px_0px_0px_rgba(255,255,255,1)]"
                   )}
                   aria-label={`Mark ${cls.subject_name} as cancelled`}
                   aria-pressed={cls.status === 'CANCELLED'}
                 >
-                  <Ban size={20} /> <span className="text-[10px] font-bold">CANCELLED</span>
+                  <Ban size={24} /> 
+                  <span className="text-xs">CANCELLED</span>
                 </button>
               </div>
-
             </div>
           ))
         )}
@@ -436,18 +508,26 @@ export default function MarkAttendancePage() {
 
       {/* ADD EXTRA CLASS MODAL */}
       {showAddExtraModal && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
-          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-auto border border-slate-100 dark:border-slate-700">
-            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Add Extra Class</h3>
+        <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="border-[3px] border-black bg-white p-6 w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+            <h3 className="text-xl font-black text-black dark:text-white mb-6">➕ Add Extra Class</h3>
 
             <div className="space-y-4">
               {/* Subject Selection */}
               <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Subject</label>
+                <label className="block text-xs font-black text-black dark:text-white uppercase tracking-wider mb-2">
+                  Subject
+                </label>
                 <select
                   value={selectedSubjectId}
                   onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className={clsx(
+                    "w-full p-3 text-base font-semibold",
+                    "border-[3px] border-black bg-white",
+                    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "focus:outline-none",
+                    "dark:bg-slate-700 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  )}
                 >
                   <option value="">Select a subject</option>
                   {subjects.map((subject) => (
@@ -460,23 +540,39 @@ export default function MarkAttendancePage() {
 
               {/* Start Time */}
               <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Start Time</label>
+                <label className="block text-xs font-black text-black dark:text-white uppercase tracking-wider mb-2">
+                  Start Time
+                </label>
                 <input
                   type="time"
                   value={extraStartTime}
                   onChange={(e) => setExtraStartTime(e.target.value)}
-                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className={clsx(
+                    "w-full p-3 text-base font-semibold",
+                    "border-[3px] border-black bg-white",
+                    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "focus:outline-none",
+                    "dark:bg-slate-700 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  )}
                 />
               </div>
 
               {/* End Time */}
               <div>
-                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">End Time</label>
+                <label className="block text-xs font-black text-black dark:text-white uppercase tracking-wider mb-2">
+                  End Time
+                </label>
                 <input
                   type="time"
                   value={extraEndTime}
                   onChange={(e) => setExtraEndTime(e.target.value)}
-                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
+                  className={clsx(
+                    "w-full p-3 text-base font-semibold",
+                    "border-[3px] border-black bg-white",
+                    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "focus:outline-none",
+                    "dark:bg-slate-700 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  )}
                 />
               </div>
             </div>
@@ -484,13 +580,29 @@ export default function MarkAttendancePage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowAddExtraModal(false)}
-                className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
+                className={clsx(
+                  "flex-1 py-3 px-4 font-black text-base",
+                  "border-[3px] border-black bg-gray-200 text-black",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:bg-slate-600 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
               >
                 Cancel
               </button>
               <button
                 onClick={addExtraClass}
-                className="flex-1 py-3 px-4 bg-green-600 dark:bg-green-500 text-white rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
+                className={clsx(
+                  "flex-1 py-3 px-4 font-black text-base text-white",
+                  "border-[3px] border-black bg-green-500",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
               >
                 Add Class
               </button>
@@ -499,24 +611,24 @@ export default function MarkAttendancePage() {
         </div>
       )}
 
-      {/* FLOATING SAVE BUTTON WITH SUMMARY */}
+      {/* FLOATING SAVE SECTION */}
       {classes.length > 0 && (
-        <div className="fixed bottom-6 left-4 right-4 flex justify-center z-20">
-          <div className="max-w-xl w-full space-y-3">
+        <div className="fixed bottom-0 left-0 right-0 z-40 p-4 bg-gradient-to-t from-[var(--background)] via-[var(--background)] to-transparent pt-8">
+          <div className="max-w-2xl mx-auto space-y-3">
             {/* Summary Box */}
-            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg border border-slate-200 dark:border-slate-700 transition-colors">
-              <div className="grid grid-cols-3 gap-4 text-center text-sm">
-                <div>
-                  <div className="text-lg font-bold text-green-600 dark:text-green-500">{classes.filter(c => c.status === 'PRESENT').length}</div>
-                  <div className="text-xs text-slate-400 dark:text-slate-500">Present</div>
+            <div className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+              <div className="grid grid-cols-3 gap-4 text-center">
+                <div className="p-2">
+                  <div className="text-2xl font-black text-green-600">{classes.filter(c => c.status === 'PRESENT').length}</div>
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Present</div>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-red-600 dark:text-red-500">{classes.filter(c => c.status === 'ABSENT').length}</div>
-                  <div className="text-xs text-slate-400 dark:text-slate-500">Absent</div>
+                <div className="p-2 border-x-[2px] border-black dark:border-white">
+                  <div className="text-2xl font-black text-red-600">{classes.filter(c => c.status === 'ABSENT').length}</div>
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Absent</div>
                 </div>
-                <div>
-                  <div className="text-lg font-bold text-slate-600 dark:text-slate-400">{classes.filter(c => c.status === 'CANCELLED').length}</div>
-                  <div className="text-xs text-slate-400 dark:text-slate-500">Cancelled</div>
+                <div className="p-2">
+                  <div className="text-2xl font-black text-gray-600">{classes.filter(c => c.status === 'CANCELLED').length}</div>
+                  <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Cancelled</div>
                 </div>
               </div>
             </div>
@@ -525,18 +637,27 @@ export default function MarkAttendancePage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full bg-slate-900 dark:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 dark:hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className={clsx(
+                "w-full py-4 font-black text-lg text-white flex items-center justify-center gap-3",
+                "border-[3px] border-black bg-blue-500",
+                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]",
+                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
+                "transition-all duration-150",
+                "disabled:opacity-70 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0",
+                "dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+                "dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]"
+              )}
             >
               {saving ? (
-                 <>Saving <Loader2 className="animate-spin" size={18} /></>
+                <>Saving... <Loader2 className="animate-spin" size={20} /></>
               ) : (
-                 <>Confirm & Save <Save size={18} /></>
+                <>✅ CONFIRM & SAVE <Save size={20} /></>
               )}
             </button>
           </div>
         </div>
       )}
-
     </div>
   );
 }

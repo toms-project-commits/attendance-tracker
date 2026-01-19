@@ -10,7 +10,10 @@ import {
   ShieldCheck,
   Loader2,
   Info,
-  Edit2
+  Edit2,
+  TrendingUp,
+  TrendingDown,
+  Target
 } from 'lucide-react';
 import Link from 'next/link';
 import {
@@ -147,7 +150,6 @@ export default function AnalyticsPage() {
         }
       });
 
-      // Process remaining logs (extra classes not in timetable)
       daysLogs.forEach((log) => {
         if (!log.subject_id || !subjectMap[log.subject_id]) return;
 
@@ -185,7 +187,7 @@ export default function AnalyticsPage() {
         const maxBunks = Math.floor(maxTotalAllowed - total);
 
         if (maxBunks > 0) {
-          bunkMsg = `You can miss up to ${maxBunks} more class${maxBunks === 1 ? '' : 'es'} (if you attend all others) and still meet your ${target}% target.`;
+          bunkMsg = `You can miss up to ${maxBunks} more class${maxBunks === 1 ? '' : 'es'} and still meet your ${target}% target.`;
           status = 'Safe';
         } else {
           bunkMsg = `You're at ${percentage.toFixed(0)}% (target: ${target}%). Keep attending to maintain your target.`;
@@ -249,136 +251,322 @@ export default function AnalyticsPage() {
     }
   }, [analyticsData.stats, sortBy]);
 
+  const isSafe = analyticsData.overall.percentage >= 75;
+  const safeCount = analyticsData.stats.filter(s => s.status === 'Safe').length;
+  const dangerCount = analyticsData.stats.filter(s => s.status === 'Danger').length;
+
   if (dataLoading) {
     return (
-      <div className="min-h-screen flex flex-col items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 gap-3 transition-colors">
-        <Loader2 className="animate-spin text-blue-600 dark:text-blue-500" size={32} />
-        <p className="font-medium animate-pulse">Calculating Analytics...</p>
+      <div className="min-h-screen flex flex-col items-center justify-center gap-4" style={{ background: 'var(--background)' }}>
+        <div className="border-[3px] border-black bg-yellow-400 p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white">
+          <Loader2 className="animate-spin mx-auto mb-3 text-black" size={40} />
+          <p className="font-black text-black text-lg">Calculating Analytics...</p>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors">
+    <div className="min-h-screen pb-20" style={{ background: 'var(--background)' }}>
       {/* HEADER */}
-      <div className="bg-white dark:bg-slate-900 p-4 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
-        <div className="flex items-center gap-4 mb-2">
-          <Link href="/dashboard" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-            <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
-          </Link>
-          <h1 className="text-xl font-bold text-slate-800 dark:text-white flex-1">Analytics</h1>
+      <div className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white p-4 sticky top-0 z-40 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
+        <div className="max-w-4xl mx-auto">
+          <div className="flex items-center gap-4">
+            <Link 
+              href="/dashboard" 
+              className={clsx(
+                "p-3 border-[3px] border-black bg-white",
+                "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                "transition-all duration-150",
+                "dark:bg-slate-700 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              )}
+            >
+              <ArrowLeft size={20} className="text-black dark:text-white" />
+            </Link>
+            <div className="flex-1">
+              <h1 className="text-xl md:text-2xl font-black text-black dark:text-white">
+                📊 Analytics
+              </h1>
+              {analyticsData.semesterInfo.start && analyticsData.semesterInfo.start !== 'Not Started' && (
+                <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
+                  Started: {analyticsData.semesterInfo.start} • {analyticsData.semesterInfo.daysElapsed} days
+                </p>
+              )}
+            </div>
+          </div>
         </div>
-        {analyticsData.semesterInfo.start && (
-          <p className="text-xs text-slate-500 dark:text-slate-400 ml-12">
-            Semester started: {analyticsData.semesterInfo.start} • {analyticsData.semesterInfo.daysElapsed} days elapsed
-          </p>
-        )}
       </div>
 
-      <div className="max-w-3xl mx-auto p-4 md:p-8 space-y-6">
-        {/* 1. HERO CARD (OVERALL) */}
-        <div className="bg-slate-900 dark:bg-slate-800 rounded-3xl p-6 md:p-8 text-white shadow-xl shadow-blue-900/20 dark:shadow-blue-500/10 relative overflow-hidden transition-colors">
-          <div className="absolute top-0 right-0 w-64 h-64 bg-blue-500/10 rounded-full blur-3xl -mr-16 -mt-16 pointer-events-none" />
-          <div className="flex flex-col md:flex-row items-center justify-between gap-8 relative z-10">
-            <div className="text-center md:text-left space-y-4">
-              <div>
-                <h2 className="text-slate-400 text-xs font-bold uppercase tracking-widest mb-1">Overall Attendance</h2>
-                <div className="text-5xl md:text-6xl font-bold tracking-tight">
-                  {analyticsData.overall.percentage.toFixed(0)}<span className="text-3xl text-slate-500">%</span>
-                </div>
+      <div className="max-w-4xl mx-auto p-4 md:p-6 space-y-6">
+        {/* OVERALL STATUS - HERO CARD */}
+        <div 
+          className={clsx(
+            "border-[3px] border-black p-6 md:p-8",
+            "shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]",
+            "dark:border-white dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]",
+            isSafe ? "bg-green-400" : "bg-red-500"
+          )}
+        >
+          <div className="flex flex-col lg:flex-row items-center justify-between gap-6">
+            {/* Left: Stats */}
+            <div className="text-center lg:text-left">
+              <h2 className={clsx(
+                "text-xs font-black uppercase tracking-widest mb-2",
+                isSafe ? "text-green-800" : "text-white/80"
+              )}>
+                Overall Attendance
+              </h2>
+              <div className={clsx(
+                "text-6xl md:text-7xl font-black",
+                isSafe ? "text-black" : "text-white"
+              )}>
+                {analyticsData.overall.percentage.toFixed(0)}
+                <span className={clsx(
+                  "text-3xl",
+                  isSafe ? "text-green-700" : "text-white/70"
+                )}>%</span>
               </div>
-              <div className="inline-flex gap-4 bg-slate-800/80 dark:bg-slate-700/80 backdrop-blur-sm p-3 rounded-xl text-sm border border-slate-700/50 dark:border-slate-600/50 shadow-inner">
-                <div className="flex flex-col items-center px-2">
-                  <span className="text-green-400 dark:text-green-500 font-bold text-lg">{analyticsData.overall.attended}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold">Present</span>
-                </div>
-                <div className="w-px bg-slate-700 dark:bg-slate-600"></div>
-                <div className="flex flex-col items-center px-2">
-                  <span className="text-red-400 dark:text-red-500 font-bold text-lg">{analyticsData.overall.total - analyticsData.overall.attended}</span>
-                  <span className="text-[10px] text-slate-400 dark:text-slate-500 uppercase font-bold">Absent</span>
-                </div>
+              
+              {/* Status Badge */}
+              <div className={clsx(
+                "inline-flex items-center gap-2 mt-4 px-4 py-2 border-[3px] border-black font-black text-sm",
+                isSafe ? "bg-white text-green-700" : "bg-white text-red-600"
+              )}>
+                {isSafe ? (
+                  <>
+                    <ShieldCheck size={20} />
+                    YOU&apos;RE SAFE! ✅
+                  </>
+                ) : (
+                  <>
+                    <AlertTriangle size={20} />
+                    AT RISK! ⚠️
+                  </>
+                )}
               </div>
             </div>
 
-            {/* Donut Chart */}
-            <div className="relative w-36 h-36 shrink-0">
-              <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg]">
-                <path className="text-slate-800 dark:text-slate-700" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                <path className={clsx("transition-all duration-1000 ease-out", analyticsData.overall.percentage >= 75 ? "text-green-500 dark:text-green-400" : "text-red-500 dark:text-red-400")} strokeDasharray={`${analyticsData.overall.percentage}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+            {/* Right: Donut Chart */}
+            <div className="relative w-40 h-40 md:w-48 md:h-48 shrink-0">
+              <div className={clsx(
+                "absolute inset-0 border-[3px] border-black rounded-full",
+                "dark:border-white"
+              )} />
+              <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                <path 
+                  className={isSafe ? "text-green-600/30" : "text-red-700/30"}
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="3" 
+                />
+                <path 
+                  className={isSafe ? "text-black" : "text-white"}
+                  strokeDasharray={`${analyticsData.overall.percentage}, 100`} 
+                  d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                  fill="none" 
+                  stroke="currentColor" 
+                  strokeWidth="3" 
+                  strokeLinecap="round"
+                />
               </svg>
               <div className="absolute inset-0 flex flex-col items-center justify-center">
-                <span className="text-xs text-slate-500 dark:text-slate-400 font-bold uppercase">Classes</span>
-                <span className="text-xl font-bold text-white">{analyticsData.overall.total}</span>
+                <span className={clsx(
+                  "text-xs font-black uppercase",
+                  isSafe ? "text-green-800" : "text-white/80"
+                )}>Classes</span>
+                <span className={clsx(
+                  "text-3xl font-black",
+                  isSafe ? "text-black" : "text-white"
+                )}>{analyticsData.overall.total}</span>
               </div>
+            </div>
+          </div>
+
+          {/* Stats Row */}
+          <div className="grid grid-cols-3 gap-3 mt-6">
+            <div className={clsx(
+              "border-[3px] border-black p-3 text-center",
+              isSafe ? "bg-white" : "bg-white/90"
+            )}>
+              <div className="text-2xl font-black text-green-600">{analyticsData.overall.attended}</div>
+              <div className="text-xs font-bold text-gray-600 uppercase">Present</div>
+            </div>
+            <div className={clsx(
+              "border-[3px] border-black p-3 text-center",
+              isSafe ? "bg-white" : "bg-white/90"
+            )}>
+              <div className="text-2xl font-black text-red-600">{analyticsData.overall.total - analyticsData.overall.attended}</div>
+              <div className="text-xs font-bold text-gray-600 uppercase">Absent</div>
+            </div>
+            <div className={clsx(
+              "border-[3px] border-black p-3 text-center",
+              isSafe ? "bg-white" : "bg-white/90"
+            )}>
+              <div className="text-2xl font-black text-blue-600">{analyticsData.stats.length}</div>
+              <div className="text-xs font-bold text-gray-600 uppercase">Subjects</div>
             </div>
           </div>
         </div>
 
-        {/* 2. SUBJECT BREAKDOWN WITH SORT CONTROLS */}
+        {/* QUICK SUMMARY CARDS */}
+        <div className="grid grid-cols-2 gap-4">
+          <div className="border-[3px] border-black bg-green-100 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:bg-green-900/30">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingUp size={20} className="text-green-600" />
+              <span className="text-xs font-black uppercase text-green-800 dark:text-green-400">Safe</span>
+            </div>
+            <div className="text-4xl font-black text-green-700 dark:text-green-400">{safeCount}</div>
+            <div className="text-sm font-bold text-green-600 dark:text-green-500">subjects on track</div>
+          </div>
+          <div className="border-[3px] border-black bg-red-100 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:bg-red-900/30">
+            <div className="flex items-center gap-2 mb-2">
+              <TrendingDown size={20} className="text-red-600" />
+              <span className="text-xs font-black uppercase text-red-800 dark:text-red-400">At Risk</span>
+            </div>
+            <div className="text-4xl font-black text-red-700 dark:text-red-400">{dangerCount}</div>
+            <div className="text-sm font-bold text-red-600 dark:text-red-500">need attention</div>
+          </div>
+        </div>
+
+        {/* SUBJECT BREAKDOWN */}
         <div className="space-y-4">
-          <div className="flex items-center justify-between">
-            <h2 className="text-lg font-bold text-slate-800 dark:text-white">Subject Breakdown</h2>
+          <div className="flex items-center justify-between flex-wrap gap-3">
+            <h2 className="text-xl font-black text-black dark:text-white">📚 Subject Breakdown</h2>
+            
+            {/* Sort Buttons */}
             <div className="flex gap-2">
-              <button
-                onClick={() => setSortBy('status')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sortBy === 'status' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-              >
-                Status
-              </button>
-              <button
-                onClick={() => setSortBy('percentage')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sortBy === 'percentage' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-              >
-                %
-              </button>
-              <button
-                onClick={() => setSortBy('name')}
-                className={`px-3 py-1.5 rounded-lg text-xs font-bold transition-colors ${sortBy === 'name' ? 'bg-blue-600 dark:bg-blue-500 text-white' : 'bg-white dark:bg-slate-800 text-slate-600 dark:text-slate-300 border border-slate-200 dark:border-slate-700 hover:bg-slate-50 dark:hover:bg-slate-700'}`}
-              >
-                A-Z
-              </button>
+              {(['status', 'percentage', 'name'] as const).map((option) => (
+                <button
+                  key={option}
+                  onClick={() => setSortBy(option)}
+                  className={clsx(
+                    "px-3 py-2 border-[3px] border-black font-black text-xs uppercase transition-all duration-150",
+                    sortBy === option 
+                      ? "bg-blue-500 text-white shadow-none translate-x-[2px] translate-y-[2px]"
+                      : "bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "dark:border-white",
+                    sortBy === option 
+                      ? "dark:shadow-none"
+                      : "dark:bg-slate-700 dark:text-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                  )}
+                >
+                  {option === 'percentage' ? '%' : option === 'name' ? 'A-Z' : option}
+                </button>
+              ))}
             </div>
           </div>
 
           <div className="grid grid-cols-1 gap-4">
             {sortedStats.map((sub) => (
-              <div key={sub.id} className="bg-white dark:bg-slate-800 p-5 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
+              <div 
+                key={sub.id} 
+                className={clsx(
+                  "border-[3px] border-black bg-white p-5",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
+              >
+                {/* Header Row */}
                 <div className="flex justify-between items-start mb-4">
-                  <div className="flex items-center gap-4">
-                    <div className="w-1.5 h-12 rounded-full" style={{ backgroundColor: sub.color }}></div>
+                  <div className="flex items-center gap-4 flex-1">
+                    <div 
+                      className="w-3 h-16 border-[2px] border-black dark:border-white" 
+                      style={{ backgroundColor: sub.color }}
+                    />
                     <div>
-                      <h3 className="font-bold text-slate-800 dark:text-white text-lg">{sub.name}</h3>
-                      <div className="flex items-center gap-3 text-xs font-medium text-slate-500 dark:text-slate-400 mt-1">
-                        <span className="flex items-center gap-1 bg-green-50 dark:bg-green-900/30 text-green-700 dark:text-green-400 px-2 py-0.5 rounded-md"><CheckCircle size={12}/> {sub.attended} Present</span>
-                        <span className="flex items-center gap-1 bg-red-50 dark:bg-red-900/30 text-red-700 dark:text-red-400 px-2 py-0.5 rounded-md"><XCircle size={12}/> {sub.bunked} Absent</span>
+                      <h3 className="font-black text-lg text-black dark:text-white">{sub.name}</h3>
+                      <div className="flex items-center gap-2 mt-1 flex-wrap">
+                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-green-100 text-green-800 border-[2px] border-black dark:border-white dark:bg-green-900/30 dark:text-green-400">
+                          <CheckCircle size={12}/> {sub.attended}
+                        </span>
+                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-red-100 text-red-800 border-[2px] border-black dark:border-white dark:bg-red-900/30 dark:text-red-400">
+                          <XCircle size={12}/> {sub.bunked}
+                        </span>
+                        <span className="flex items-center gap-1 px-2 py-1 text-xs font-bold bg-gray-100 text-gray-800 border-[2px] border-black dark:border-white dark:bg-gray-700 dark:text-gray-300">
+                          <Target size={12}/> {sub.target}%
+                        </span>
                       </div>
                     </div>
                   </div>
+                  
+                  {/* Percentage */}
                   <div className="text-right">
-                    <div className={clsx("text-2xl font-bold", sub.percentage >= sub.target ? "text-green-600 dark:text-green-500" : "text-red-600 dark:text-red-500")}>
+                    <div className={clsx(
+                      "text-3xl font-black",
+                      sub.percentage >= sub.target ? "text-green-600" : "text-red-600"
+                    )}>
                       {sub.percentage.toFixed(0)}%
                     </div>
-                    <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">Goal: {sub.target}%</div>
                   </div>
-                  <Link href="/mark" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-700 rounded-lg transition-colors" title="Edit attendance">
-                    <Edit2 size={18} className="text-slate-400 dark:text-slate-500 hover:text-blue-600 dark:hover:text-blue-400" />
+                  
+                  {/* Edit Button */}
+                  <Link 
+                    href="/mark" 
+                    className={clsx(
+                      "ml-3 p-2 border-[2px] border-black bg-blue-100",
+                      "hover:bg-blue-500 hover:text-white",
+                      "transition-all duration-150",
+                      "dark:border-white dark:bg-blue-900/30 dark:hover:bg-blue-500"
+                    )}
+                    title="Edit attendance"
+                  >
+                    <Edit2 size={18} />
                   </Link>
                 </div>
-                <div className="h-2 w-full bg-slate-100 dark:bg-slate-700 rounded-full overflow-hidden mb-4">
-                  <div className={clsx("h-full rounded-full transition-all duration-500", sub.percentage >= sub.target ? "bg-green-500 dark:bg-green-400" : "bg-red-500 dark:bg-red-400")} style={{ width: `${sub.percentage}%` }} />
+
+                {/* Progress Bar */}
+                <div className="h-4 w-full bg-gray-200 border-[2px] border-black dark:border-white mb-4">
+                  <div 
+                    className={clsx(
+                      "h-full transition-all duration-500",
+                      sub.percentage >= sub.target ? "bg-green-500" : "bg-red-500"
+                    )} 
+                    style={{ width: `${Math.min(sub.percentage, 100)}%` }} 
+                  />
                 </div>
-                <div className={clsx("p-3 rounded-xl flex items-start gap-3 text-sm font-medium border", sub.status === 'Safe' ? "bg-green-50 dark:bg-green-900/30 text-green-800 dark:text-green-400 border-green-100 dark:border-green-800" : "bg-red-50 dark:bg-red-900/30 text-red-800 dark:text-red-400 border-red-100 dark:border-red-800")}>
-                  {sub.status === 'Safe' ? <ShieldCheck className="shrink-0 text-green-600 dark:text-green-500 mt-0.5" size={18} /> : <AlertTriangle className="shrink-0 text-red-600 dark:text-red-500 mt-0.5" size={18} />}
-                  <div>{sub.bunkMsg}</div>
+
+                {/* Status Message */}
+                <div className={clsx(
+                  "p-4 border-[3px] border-black flex items-start gap-3 font-bold",
+                  sub.status === 'Safe' 
+                    ? "bg-green-100 text-green-800 dark:bg-green-900/30 dark:text-green-400" 
+                    : "bg-red-100 text-red-800 dark:bg-red-900/30 dark:text-red-400"
+                )}>
+                  {sub.status === 'Safe' ? (
+                    <ShieldCheck className="shrink-0 mt-0.5" size={20} />
+                  ) : (
+                    <AlertTriangle className="shrink-0 mt-0.5" size={20} />
+                  )}
+                  <div className="text-sm">{sub.bunkMsg}</div>
                 </div>
               </div>
             ))}
 
             {analyticsData.stats.length === 0 && (
-              <div className="text-center py-12 bg-white dark:bg-slate-800 rounded-2xl border border-dashed border-slate-200 dark:border-slate-700">
-                <Info className="mx-auto text-slate-300 dark:text-slate-600 mb-3" size={32} />
-                <p className="text-slate-500 dark:text-slate-400 font-medium">No subjects found.</p>
-                <p className="text-slate-400 dark:text-slate-500 text-sm mt-1">Add subjects in the Subjects page to see analytics.</p>
+              <div className="border-[3px] border-black border-dashed bg-white p-8 text-center dark:bg-slate-800 dark:border-white">
+                <div className="w-16 h-16 bg-blue-500 border-[3px] border-black dark:border-white mx-auto mb-4 flex items-center justify-center">
+                  <Info className="text-white" size={32} />
+                </div>
+                <p className="text-xl font-black text-black dark:text-white">No subjects found</p>
+                <p className="text-base font-semibold text-gray-600 dark:text-gray-400 mt-2">
+                  Add subjects to see your analytics.
+                </p>
+                <Link 
+                  href="/subjects"
+                  className={clsx(
+                    "inline-block mt-4 px-6 py-3 border-[3px] border-black bg-blue-500 text-white font-black",
+                    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                    "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                    "transition-all duration-150",
+                    "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  )}
+                >
+                  ➕ Add Subjects
+                </Link>
               </div>
             )}
           </div>

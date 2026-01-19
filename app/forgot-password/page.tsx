@@ -1,8 +1,9 @@
 'use client';
 import { useState } from 'react';
-import { supabase } from '@/lib/supabase'; // This connects to your database
-import { Loader2, ArrowLeft } from 'lucide-react'; // Icons
-import Link from 'next/link'; // For linking pages
+import { supabase } from '@/lib/supabase';
+import { Loader2, ArrowLeft, Mail } from 'lucide-react';
+import Link from 'next/link';
+import { clsx } from 'clsx';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
@@ -14,8 +15,6 @@ export default function ForgotPassword() {
     setLoading(true);
     setMessage(null);
 
-    // This sends the reset email using Supabase
-    // SSR-safe window access
     const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
       redirectTo: `${origin}/update-password`,
@@ -30,44 +29,96 @@ export default function ForgotPassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 transition-colors">
-      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-slate-700 transition-colors">
+    <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
+      <div className="max-w-md w-full">
         {/* Back Button */}
-        <Link href="/login" className="flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 mb-8 text-sm font-medium transition-colors">
-          <ArrowLeft size={16} className="mr-2" /> Back to Login
+        <Link 
+          href="/login" 
+          className={clsx(
+            "inline-flex items-center gap-2 mb-6 px-4 py-2 border-[3px] border-black bg-white font-bold text-black text-sm",
+            "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+            "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+            "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+            "transition-all duration-150",
+            "dark:bg-slate-800 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+          )}
+        >
+          <ArrowLeft size={16} /> Back to Login
         </Link>
-        
-        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Reset Password</h1>
-        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Enter your email address and we will send you a link to reset your password.</p>
 
-        <form onSubmit={handleReset} className="space-y-4">
-          <div>
-            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Email Address</label>
-            <input
-              type="email"
-              required
-              className="w-full px-4 py-2.5 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
-              placeholder="student@college.edu"
-              value={email}
-              onChange={(e) => setEmail(e.target.value)}
-            />
+        {/* Main Card */}
+        <div className="border-[3px] border-black bg-white p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+          <div className="text-center mb-8">
+            <div className="inline-block border-[3px] border-black bg-orange-500 px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 dark:border-white">
+              <h1 className="text-2xl md:text-3xl font-black text-white">🔑 Reset Password</h1>
+            </div>
+            <p className="text-base font-semibold text-gray-600 dark:text-gray-400 mt-4">
+              Enter your email and we&apos;ll send you a reset link.
+            </p>
           </div>
 
-          {/* Error/Success Message Box */}
-          {message && (
-            <div className={`p-3 rounded-lg text-sm border ${message.type === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}>
-              {message.text}
+          <form onSubmit={handleReset} className="space-y-5">
+            <div>
+              <label className="block text-sm font-black text-black dark:text-white mb-2 uppercase tracking-wider">
+                Email Address
+              </label>
+              <div className="relative">
+                <Mail size={20} className="absolute left-4 top-1/2 -translate-y-1/2 text-gray-500" />
+                <input
+                  type="email"
+                  required
+                  className={clsx(
+                    "w-full pl-12 pr-4 py-3 text-base font-semibold",
+                    "border-[3px] border-black bg-white",
+                    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]",
+                    "transition-all duration-150",
+                    "placeholder:text-gray-400",
+                    "dark:bg-slate-700 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  )}
+                  placeholder="student@college.edu"
+                  value={email}
+                  onChange={(e) => setEmail(e.target.value)}
+                />
+              </div>
             </div>
-          )}
 
-          <button
-            type="submit"
-            disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-all flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
-          >
-            {loading ? <Loader2 className="animate-spin" size={20} /> : 'Send Reset Link'}
-          </button>
-        </form>
+            {/* Error/Success Message */}
+            {message && (
+              <div 
+                className={clsx(
+                  "border-[3px] border-black p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  message.type === 'error' ? 'bg-red-400' : 'bg-green-400'
+                )}
+              >
+                <p className="text-sm font-bold text-black">
+                  {message.type === 'error' ? '❌ ' : '✅ '}{message.text}
+                </p>
+              </div>
+            )}
+
+            <button
+              type="submit"
+              disabled={loading}
+              className={clsx(
+                "w-full py-4 text-lg font-black text-white",
+                "border-[3px] border-black bg-blue-500",
+                "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "transition-all duration-150",
+                "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                "disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0 disabled:hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              )}
+            >
+              {loading ? (
+                <Loader2 className="animate-spin mx-auto" size={24} />
+              ) : (
+                '📧 Send Reset Link'
+              )}
+            </button>
+          </form>
+        </div>
       </div>
     </div>
   );

@@ -8,12 +8,13 @@ import { clsx } from 'clsx';
 
 // CONSTANTS
 const DAYS = ['Monday', 'Tuesday', 'Wednesday', 'Thursday', 'Friday', 'Saturday', 'Sunday'];
+const SHORT_DAYS = ['Mon', 'Tue', 'Wed', 'Thu', 'Fri', 'Sat', 'Sun'];
 
 type Subject = { id: string; name: string; color_hex: string };
 type Slot = { 
   id: string; 
   day_of_week: number; 
-  start_time: string; // Always stored as "14:00"
+  start_time: string;
   end_time: string;
   slot_type: 'SUBJECT' | 'BREAK' | 'SPORTS' | 'LIBRARY' | 'EXAM';
   subject_id?: string;
@@ -25,17 +26,15 @@ export default function TimetablePage() {
   const router = useRouter();
   
   // STATE
-  const [activeDay, setActiveDay] = useState(1); // 1 = Monday
+  const [activeDay, setActiveDay] = useState(1);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [slots, setSlots] = useState<Slot[]>([]);
-  const [is24Hour, setIs24Hour] = useState(false); // Default to 12-hour
+  const [is24Hour, setIs24Hour] = useState(false);
   
   // MODAL STATE
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   
-  // We keep the "Source of Truth" as 24h strings (e.g., "14:00")
-  // The UI will convert this back and forth for the user.
   const [newSlotStart, setNewSlotStart] = useState('09:00');
   const [newSlotEnd, setNewSlotEnd] = useState('10:00');
   
@@ -74,7 +73,6 @@ export default function TimetablePage() {
         console.error('Error fetching timetable slots:', slotError);
       } else if (slotData) {
         const formattedSlots = slotData.map((s) => {
-          // Safe time string parsing
           const startTime = s.start_time && typeof s.start_time === 'string'
             ? s.start_time.length >= 5 ? s.start_time.slice(0, 5) : s.start_time
             : '09:00';
@@ -102,9 +100,7 @@ export default function TimetablePage() {
     }
   }, [router]);
 
-  // 1. LOAD DATA & PREFERENCES
   useEffect(() => {
-    // SSR-safe localStorage access
     if (typeof window !== 'undefined') {
       const savedFormat = localStorage.getItem('time_format_preference');
       if (savedFormat === '24') setIs24Hour(true);
@@ -112,9 +108,6 @@ export default function TimetablePage() {
     fetchData();
   }, [fetchData]);
 
-  // --- TIME HELPERS ---
-
-  // Display "14:00" as "2:00 PM"
   const formatTimeDisplay = (timeStr: string) => {
     if (is24Hour) return timeStr;
     if (!timeStr || typeof timeStr !== 'string') return '--:--';
@@ -135,7 +128,6 @@ export default function TimetablePage() {
     }
   };
 
-  // Convert "02:30" + "PM" -> "14:30"
   const convert12to24 = (hour12: number, minute: string, ampm: string) => {
     let hour = hour12;
     if (ampm === 'PM' && hour < 12) hour += 12;
@@ -144,7 +136,6 @@ export default function TimetablePage() {
     return `${hStr}:${minute}`;
   };
 
-  // Convert "14:30" -> { hour: 2, minute: "30", ampm: "PM" }
   const parse24to12 = (timeStr: string) => {
     if (!timeStr || typeof timeStr !== 'string') {
       return { hour: 9, minute: '00', ampm: 'AM' as const };
@@ -162,7 +153,6 @@ export default function TimetablePage() {
     return { hour: displayHour, minute: m, ampm };
   };
 
-  // Open modal for adding
   const openAddModal = () => {
     setEditingSlotId(null);
     setNewSlotStart('09:00');
@@ -172,7 +162,6 @@ export default function TimetablePage() {
     setIsModalOpen(true);
   };
 
-  // Open modal for editing
   const openEditModal = (slot: Slot) => {
     setEditingSlotId(slot.id);
     setNewSlotStart(slot.start_time);
@@ -182,15 +171,12 @@ export default function TimetablePage() {
     setIsModalOpen(true);
   };
 
-  // 2. ADD OR UPDATE SLOT
   const handleSaveSlot = async () => {
-    // Validation
     if (!newSlotStart || !newSlotEnd) {
       alert('Please select both start and end times');
       return;
     }
 
-    // Validate time order
     if (newSlotStart >= newSlotEnd) {
       alert('End time must be after start time');
       return;
@@ -209,7 +195,6 @@ export default function TimetablePage() {
       }
 
       if (editingSlotId) {
-        // UPDATE existing slot
         const { error } = await supabase
           .from('timetable_slots')
           .update({
@@ -224,7 +209,6 @@ export default function TimetablePage() {
           throw error;
         }
       } else {
-        // INSERT new slot
         const tempId = Math.random().toString(); 
         const subject = subjects.find(s => s.id === selectedSubjectId);
         
@@ -260,11 +244,10 @@ export default function TimetablePage() {
       }
 
       setIsModalOpen(false);
-      fetchData(); // Refresh to get updated data
+      fetchData();
     } catch (error) {
       console.error('Error saving slot:', error);
       alert('Failed to save class. Please try again.');
-      // Revert optimistic update
       fetchData();
     }
   };
@@ -283,13 +266,11 @@ export default function TimetablePage() {
     } catch (error) {
       console.error('Error deleting slot:', error);
       alert('Failed to delete class. Please try again.');
-      // Revert optimistic update
       setSlots(originalSlots);
     }
   };
 
   // --- COMPONENT: 12H TIME PICKER ---
-  // This helps us keep the JSX clean
   const TimePicker12H = ({ value, onChange }: { value: string, onChange: (val: string) => void }) => {
     const { hour, minute, ampm } = parse24to12(value);
     
@@ -299,28 +280,44 @@ export default function TimetablePage() {
 
     return (
       <div className="flex gap-1 items-center">
-        {/* Hour */}
         <select 
           value={hour} 
           onChange={(e) => update(parseInt(e.target.value), minute, ampm)}
-          className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+          className={clsx(
+            "p-2 text-sm font-bold",
+            "border-[3px] border-black bg-white",
+            "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
+            "focus:outline-none",
+            "dark:bg-slate-700 dark:text-white dark:border-white"
+          )}
         >
           {[1,2,3,4,5,6,7,8,9,10,11,12].map(h => <option key={h} value={h}>{h}</option>)}
         </select>
-        <span className="font-bold">:</span>
-        {/* Minute */}
+        <span className="font-black text-black dark:text-white">:</span>
         <select 
           value={minute} 
           onChange={(e) => update(hour, e.target.value, ampm)}
-          className="bg-slate-50 border border-slate-200 rounded-lg p-2 text-sm font-bold focus:ring-2 focus:ring-blue-500 outline-none"
+          className={clsx(
+            "p-2 text-sm font-bold",
+            "border-[3px] border-black bg-white",
+            "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
+            "focus:outline-none",
+            "dark:bg-slate-700 dark:text-white dark:border-white"
+          )}
         >
           {['00','05','10','15','20','25','30','35','40','45','50','55'].map(m => <option key={m} value={m}>{m}</option>)}
         </select>
-        {/* AM/PM */}
         <button 
           type="button"
           onClick={() => update(hour, minute, ampm === 'AM' ? 'PM' : 'AM')}
-          className={`ml-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${ampm === 'AM' ? 'bg-orange-100 text-orange-600' : 'bg-indigo-100 text-indigo-600'}`}
+          className={clsx(
+            "ml-1 px-3 py-2 border-[3px] border-black font-black text-xs",
+            "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
+            "transition-all duration-150",
+            "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+            ampm === 'AM' ? 'bg-orange-400 text-black' : 'bg-indigo-500 text-white',
+            "dark:border-white"
+          )}
         >
           {ampm}
         </button>
@@ -331,73 +328,120 @@ export default function TimetablePage() {
   const daySlots = slots.filter(s => s.day_of_week === activeDay);
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 flex flex-col transition-colors">
+    <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
       
       {/* HEADER */}
-      <div className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 p-4 sticky top-0 z-10 transition-colors">
-        <div className="max-w-3xl mx-auto flex items-center justify-between mb-4">
-          <div className="flex items-center gap-4">
-            <Link href="/dashboard" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
-              <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
-            </Link>
-            <h1 className="text-xl font-bold text-slate-800 dark:text-white">Timetable</h1>
-          </div>
-          
-          <div className="flex gap-2">
-            <button 
-              onClick={toggleFormat}
-              className="px-3 py-2 bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-300 rounded-xl text-xs font-bold border border-slate-200 dark:border-slate-700 hover:bg-slate-200 dark:hover:bg-slate-700 transition-colors"
-              aria-label={`Switch to ${is24Hour ? '12-hour' : '24-hour'} time format`}
-            >
-              {is24Hour ? '24H' : '12H'}
-            </button>
-
-            <button 
-              onClick={openAddModal}
-              className="bg-slate-900 dark:bg-blue-600 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-800 dark:hover:bg-blue-700 transition-colors shadow-lg shadow-slate-200 dark:shadow-blue-900/50"
-              aria-label="Add new class"
-            >
-              <Plus size={18} /> <span className="hidden sm:inline">Add Class</span>
-            </button>
-          </div>
-        </div>
-
-        {/* DAY TABS */}
-        <div className="max-w-3xl mx-auto flex gap-2 overflow-x-auto pb-2 no-scrollbar">
-          {DAYS.map((day, index) => {
-            const dayNum = index + 1;
-            const isActive = activeDay === dayNum;
-            const hasClasses = slots.some(s => s.day_of_week === dayNum);
-            
-            return (
-              <button
-                key={day}
-                onClick={() => setActiveDay(dayNum)}
+      <div className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white p-4 sticky top-0 z-40 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
+        <div className="max-w-3xl mx-auto">
+          <div className="flex items-center justify-between mb-4">
+            <div className="flex items-center gap-4">
+              <Link 
+                href="/dashboard" 
                 className={clsx(
-                  "px-4 py-2 rounded-full text-sm font-bold whitespace-nowrap transition-all border",
-                  isActive 
-                    ? "bg-blue-600 dark:bg-blue-500 border-blue-600 dark:border-blue-500 text-white shadow-md" 
-                    : "bg-white dark:bg-slate-800 border-slate-200 dark:border-slate-700 text-slate-500 dark:text-slate-400 hover:border-blue-300 dark:hover:border-blue-600"
+                  "p-3 border-[3px] border-black bg-white",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:bg-slate-700 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
                 )}
               >
-                {day}
-                {hasClasses && !isActive && <span className="ml-2 w-1.5 h-1.5 bg-blue-400 dark:bg-blue-500 rounded-full inline-block mb-0.5" />}
+                <ArrowLeft size={20} className="text-black dark:text-white" />
+              </Link>
+              <h1 className="text-xl md:text-2xl font-black text-black dark:text-white">
+                📅 Timetable
+              </h1>
+            </div>
+            
+            <div className="flex gap-2">
+              <button 
+                onClick={toggleFormat}
+                className={clsx(
+                  "px-3 py-2 border-[3px] border-black font-black text-xs",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "transition-all duration-150",
+                  "bg-white text-black",
+                  "dark:bg-slate-700 dark:text-white dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                )}
+                aria-label={`Switch to ${is24Hour ? '12-hour' : '24-hour'} time format`}
+              >
+                {is24Hour ? '24H' : '12H'}
               </button>
-            );
-          })}
+
+              <button 
+                onClick={openAddModal}
+                className={clsx(
+                  "flex items-center gap-2 px-4 py-2 border-[3px] border-black bg-blue-500 text-white font-black text-sm",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
+                aria-label="Add new class"
+              >
+                <Plus size={18} /> <span className="hidden sm:inline">ADD</span>
+              </button>
+            </div>
+          </div>
+
+          {/* DAY TABS */}
+          <div className="flex gap-2 overflow-x-auto pb-2 no-scrollbar">
+            {DAYS.map((day, index) => {
+              const dayNum = index + 1;
+              const isActive = activeDay === dayNum;
+              const hasClasses = slots.some(s => s.day_of_week === dayNum);
+              
+              return (
+                <button
+                  key={day}
+                  onClick={() => setActiveDay(dayNum)}
+                  className={clsx(
+                    "px-4 py-2 border-[3px] border-black font-black text-sm whitespace-nowrap transition-all duration-150",
+                    isActive 
+                      ? "bg-blue-500 text-white shadow-none translate-x-[2px] translate-y-[2px]" 
+                      : "bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "dark:border-white",
+                    isActive 
+                      ? "dark:shadow-none"
+                      : "dark:bg-slate-700 dark:text-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                  )}
+                >
+                  <span className="hidden md:inline">{day}</span>
+                  <span className="md:hidden">{SHORT_DAYS[index]}</span>
+                  {hasClasses && !isActive && <span className="ml-1 w-2 h-2 bg-blue-500 rounded-full inline-block" />}
+                </button>
+              );
+            })}
+          </div>
         </div>
       </div>
 
       {/* TIMELINE VIEW */}
       <div className="flex-1 p-4 max-w-3xl mx-auto w-full">
         {daySlots.length === 0 ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
-            <div className="bg-slate-100 dark:bg-slate-800 p-6 rounded-full mb-4">
-              <Clock size={32} />
+          <div className="border-[3px] border-black border-dashed bg-white p-8 text-center dark:bg-slate-800 dark:border-white">
+            <div className="w-16 h-16 bg-purple-500 border-[3px] border-black dark:border-white mx-auto mb-4 flex items-center justify-center">
+              <Clock size={32} className="text-white" />
             </div>
-            <p>No classes scheduled for {DAYS[activeDay - 1]}.</p>
-            <button onClick={openAddModal} className="text-blue-600 dark:text-blue-400 font-bold mt-2 hover:underline">
-              Add one now?
+            <p className="text-xl font-black text-black dark:text-white">No classes on {DAYS[activeDay - 1]}</p>
+            <p className="text-base font-semibold text-gray-600 dark:text-gray-400 mt-2">
+              Add a class to get started!
+            </p>
+            <button 
+              onClick={openAddModal} 
+              className={clsx(
+                "inline-block mt-4 px-6 py-3 border-[3px] border-black bg-blue-500 text-white font-black",
+                "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                "transition-all duration-150",
+                "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+              )}
+            >
+              ➕ Add Class
             </button>
           </div>
         ) : (
@@ -405,44 +449,58 @@ export default function TimetablePage() {
             {daySlots.map((slot) => (
               <div key={slot.id} className="group relative flex gap-4">
                 {/* Time Column */}
-                <div className="flex flex-col items-end min-w-[75px] pt-2">
-                  <span className="text-sm font-bold text-slate-800 dark:text-slate-200 whitespace-nowrap">
+                <div className="flex flex-col items-end min-w-[80px] pt-3">
+                  <span className="text-sm font-black text-black dark:text-white whitespace-nowrap">
                     {formatTimeDisplay(slot.start_time)}
                   </span>
-                  <span className="text-xs text-slate-400 dark:text-slate-500 whitespace-nowrap">
+                  <span className="text-xs font-bold text-gray-500 dark:text-gray-400 whitespace-nowrap">
                     {formatTimeDisplay(slot.end_time)}
                   </span>
                 </div>
 
                 {/* Timeline Line */}
                 <div className="relative flex flex-col items-center">
-                  <div className="w-3 h-3 rounded-full bg-slate-300 dark:bg-slate-600 z-10 mt-2.5 group-hover:bg-blue-500 dark:group-hover:bg-blue-400 transition-colors" />
-                  <div className="w-0.5 flex-1 bg-slate-200 dark:bg-slate-700 -mt-2 mb-[-16px]" />
+                  <div 
+                    className="w-4 h-4 border-[3px] border-black dark:border-white z-10 mt-3 group-hover:scale-110 transition-transform" 
+                    style={{ backgroundColor: slot.color || '#94a3b8' }}
+                  />
+                  <div className="w-[3px] flex-1 bg-black dark:bg-white -mt-1 mb-[-16px]" />
                 </div>
 
                 {/* Card */}
                 <div 
-                  className="flex-1 bg-white dark:bg-slate-800 p-4 rounded-2xl border border-slate-100 dark:border-slate-700 shadow-sm hover:shadow-md transition-all mb-2"
-                  style={{ borderLeft: `4px solid ${slot.color || '#94a3b8'}` }}
+                  className={clsx(
+                    "flex-1 border-[3px] border-black bg-white p-4",
+                    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                    "transition-all duration-200",
+                    "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[5px_5px_0px_0px_rgba(0,0,0,1)]",
+                    "dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                  )}
+                  style={{ borderLeftWidth: '6px', borderLeftColor: slot.color || '#94a3b8' }}
                 >
                   <div className="flex justify-between items-start">
                     <div>
                       {slot.slot_type === 'SUBJECT' ? (
-                        <h3 className="font-bold text-slate-800 dark:text-white">{slot.subject_name}</h3>
+                        <h3 className="font-black text-lg text-black dark:text-white">{slot.subject_name}</h3>
                       ) : (
-                        <h3 className="font-bold text-slate-500 dark:text-slate-400 flex items-center gap-2">
-                          {slot.slot_type === 'BREAK' && <><Coffee size={16}/> Break</>}
-                          {slot.slot_type === 'SPORTS' && <><Trophy size={16}/> Sports</>}
-                          {slot.slot_type === 'LIBRARY' && <><Library size={16}/> Library</>}
+                        <h3 className="font-black text-lg text-gray-600 dark:text-gray-300 flex items-center gap-2">
+                          {slot.slot_type === 'BREAK' && <><Coffee size={18}/> Break</>}
+                          {slot.slot_type === 'SPORTS' && <><Trophy size={18}/> Sports</>}
+                          {slot.slot_type === 'LIBRARY' && <><Library size={18}/> Library</>}
                         </h3>
                       )}
-                      <p className="text-xs text-slate-400 dark:text-slate-500 mt-1 uppercase tracking-wide font-semibold">{slot.slot_type}</p>
+                      <p className="text-xs font-bold text-gray-500 dark:text-gray-400 mt-1 uppercase tracking-wider">{slot.slot_type}</p>
                     </div>
                     
                     <div className="flex gap-2">
                       <button 
                         onClick={() => openEditModal(slot)}
-                        className="text-slate-300 dark:text-slate-600 hover:text-blue-500 dark:hover:text-blue-400 p-2 rounded-full hover:bg-blue-50 dark:hover:bg-blue-900/30 transition-colors"
+                        className={clsx(
+                          "p-2 border-[2px] border-black bg-blue-100",
+                          "hover:bg-blue-500 hover:text-white",
+                          "transition-all duration-150",
+                          "dark:border-white dark:bg-blue-900/30 dark:hover:bg-blue-500"
+                        )}
                         aria-label={`Edit ${slot.slot_type === 'SUBJECT' ? slot.subject_name : slot.slot_type} class`}
                         title="Edit Class"
                       >
@@ -450,7 +508,12 @@ export default function TimetablePage() {
                       </button>
                       <button 
                         onClick={() => handleDeleteSlot(slot.id)}
-                        className="text-slate-300 dark:text-slate-600 hover:text-red-500 dark:hover:text-red-400 p-2 rounded-full hover:bg-red-50 dark:hover:bg-red-900/30 transition-colors"
+                        className={clsx(
+                          "p-2 border-[2px] border-black bg-red-100",
+                          "hover:bg-red-500 hover:text-white",
+                          "transition-all duration-150",
+                          "dark:border-white dark:bg-red-900/30 dark:hover:bg-red-500"
+                        )}
                         aria-label={`Delete ${slot.slot_type === 'SUBJECT' ? slot.subject_name : slot.slot_type} class`}
                         title="Delete Class"
                       >
@@ -467,36 +530,48 @@ export default function TimetablePage() {
 
       {/* ADD/EDIT CLASS MODAL */}
       {isModalOpen && (
-        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 z-50 flex items-end md:items-center justify-center p-4 backdrop-blur-sm">
-          <div className="bg-white dark:bg-slate-800 w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10 border border-slate-100 dark:border-slate-700">
-            <h2 className="text-xl font-bold text-slate-900 dark:text-white mb-6">
-              {editingSlotId ? 'Edit Class' : `Add to ${DAYS[activeDay - 1]}`}
+        <div className="fixed inset-0 bg-black/70 z-50 flex items-center justify-center p-4">
+          <div className="border-[3px] border-black bg-white w-full max-w-md p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+            <h2 className="text-xl font-black text-black dark:text-white mb-6">
+              {editingSlotId ? '✏️ Edit Class' : `➕ Add to ${DAYS[activeDay - 1]}`}
             </h2>
 
-            {/* 1. TIME INPUTS (Conditional Render) */}
-            <div className="flex flex-col gap-4 mb-6">
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">Start Time</label>
+            {/* TIME INPUTS */}
+            <div className="space-y-4 mb-6">
+              <div className="flex items-center justify-between gap-4">
+                <label className="text-xs font-black text-black dark:text-white uppercase">Start</label>
                 {is24Hour ? (
                   <input 
                     type="time" 
                     value={newSlotStart}
                     onChange={(e) => setNewSlotStart(e.target.value)}
-                    className="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={clsx(
+                      "p-2 text-base font-bold",
+                      "border-[3px] border-black bg-white",
+                      "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                      "focus:outline-none",
+                      "dark:bg-slate-700 dark:text-white dark:border-white"
+                    )}
                   />
                 ) : (
                   <TimePicker12H value={newSlotStart} onChange={setNewSlotStart} />
                 )}
               </div>
 
-              <div className="flex items-center justify-between">
-                <label className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase">End Time</label>
+              <div className="flex items-center justify-between gap-4">
+                <label className="text-xs font-black text-black dark:text-white uppercase">End</label>
                 {is24Hour ? (
                   <input 
                     type="time" 
                     value={newSlotEnd}
                     onChange={(e) => setNewSlotEnd(e.target.value)}
-                    className="p-2 bg-slate-50 dark:bg-slate-700 rounded-lg border border-slate-200 dark:border-slate-600 font-bold text-slate-800 dark:text-white focus:outline-none focus:ring-2 focus:ring-blue-500"
+                    className={clsx(
+                      "p-2 text-base font-bold",
+                      "border-[3px] border-black bg-white",
+                      "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                      "focus:outline-none",
+                      "dark:bg-slate-700 dark:text-white dark:border-white"
+                    )}
                   />
                 ) : (
                   <TimePicker12H value={newSlotEnd} onChange={setNewSlotEnd} />
@@ -504,7 +579,7 @@ export default function TimetablePage() {
               </div>
             </div>
 
-            {/* 2. TYPE SELECTOR */}
+            {/* TYPE SELECTOR */}
             <div className="grid grid-cols-4 gap-2 mb-6">
               {['SUBJECT', 'BREAK', 'LIBRARY', 'SPORTS'].map(type => (
                 <button
@@ -512,10 +587,14 @@ export default function TimetablePage() {
                   type="button"
                   onClick={() => setSelectedType(type)}
                   className={clsx(
-                    "py-2 rounded-lg text-[10px] font-bold uppercase transition-all",
+                    "py-2 border-[3px] border-black font-black text-[10px] uppercase transition-all duration-150",
                     selectedType === type 
-                      ? "bg-slate-800 dark:bg-blue-600 text-white" 
-                      : "bg-slate-100 dark:bg-slate-700 text-slate-400 dark:text-slate-500 hover:bg-slate-200 dark:hover:bg-slate-600"
+                      ? "bg-blue-500 text-white shadow-none translate-x-[2px] translate-y-[2px]" 
+                      : "bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px]",
+                    "dark:border-white",
+                    selectedType === type 
+                      ? "dark:shadow-none"
+                      : "dark:bg-slate-700 dark:text-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
                   )}
                 >
                   {type}
@@ -523,30 +602,39 @@ export default function TimetablePage() {
               ))}
             </div>
 
-            {/* 3. SUBJECT PICKER */}
+            {/* SUBJECT PICKER */}
             {selectedType === 'SUBJECT' && (
-              <div className="mb-8">
-                <label className="block text-xs font-bold text-slate-400 dark:text-slate-500 uppercase mb-2">Select Subject</label>
-                <div className="grid grid-cols-2 gap-2 max-h-32 overflow-y-auto">
+              <div className="mb-6">
+                <label className="block text-xs font-black text-black dark:text-white uppercase mb-3">Select Subject</label>
+                <div className="grid grid-cols-2 gap-2 max-h-40 overflow-y-auto">
                   {subjects.map(sub => (
                     <button
                       key={sub.id}
                       type="button"
                       onClick={() => setSelectedSubjectId(sub.id)}
                       className={clsx(
-                        "p-3 rounded-xl text-sm font-bold text-left transition-all border-2",
+                        "p-3 border-[3px] border-black text-left font-bold transition-all duration-150",
                         selectedSubjectId === sub.id 
-                          ? "border-blue-500 dark:border-blue-600 bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400" 
-                          : "border-transparent bg-slate-50 dark:bg-slate-700 text-slate-600 dark:text-slate-300 hover:bg-slate-100 dark:hover:bg-slate-600"
+                          ? "bg-blue-100 shadow-none translate-x-[2px] translate-y-[2px]" 
+                          : "bg-white shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px]",
+                        "dark:border-white",
+                        selectedSubjectId === sub.id 
+                          ? "dark:bg-blue-900/30 dark:shadow-none"
+                          : "dark:bg-slate-700 dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
                       )}
                     >
                       <div className="flex items-center gap-2">
-                        <div className="w-2 h-2 rounded-full" style={{backgroundColor: sub.color_hex}}/>
-                        {sub.name}
+                        <div className="w-3 h-3 border-[2px] border-black dark:border-white" style={{backgroundColor: sub.color_hex}}/>
+                        <span className="text-sm text-black dark:text-white">{sub.name}</span>
                       </div>
                     </button>
                   ))}
                 </div>
+                {subjects.length === 0 && (
+                  <p className="text-sm font-bold text-gray-500 dark:text-gray-400 text-center py-4">
+                    No subjects yet. <Link href="/subjects" className="text-blue-500 underline">Add some first!</Link>
+                  </p>
+                )}
               </div>
             )}
 
@@ -555,23 +643,37 @@ export default function TimetablePage() {
               <button 
                 type="button"
                 onClick={() => setIsModalOpen(false)}
-                className="flex-1 py-3 text-slate-500 dark:text-slate-400 font-bold hover:bg-slate-50 dark:hover:bg-slate-700 rounded-xl transition-colors"
+                className={clsx(
+                  "flex-1 py-3 px-4 font-black text-base",
+                  "border-[3px] border-black bg-gray-200 text-black",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:bg-slate-600 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
               >
                 Cancel
               </button>
               <button 
                 type="button"
                 onClick={handleSaveSlot}
-                className="flex-1 py-3 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-xl hover:bg-blue-700 dark:hover:bg-blue-600 shadow-lg shadow-blue-200 dark:shadow-blue-900/50 transition-colors"
+                className={clsx(
+                  "flex-1 py-3 px-4 font-black text-base text-white",
+                  "border-[3px] border-black bg-blue-500",
+                  "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+                  "transition-all duration-150",
+                  "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
               >
-                {editingSlotId ? 'Update Class' : 'Save Class'}
+                {editingSlotId ? 'Update' : 'Save'}
               </button>
             </div>
-
           </div>
         </div>
       )}
-
     </div>
   );
 }

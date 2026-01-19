@@ -1,15 +1,11 @@
 import type { Metadata, Viewport } from "next";
-import { Geist, Geist_Mono } from "next/font/google";
+import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
 
-const geistSans = Geist({
-  variable: "--font-geist-sans",
+const spaceGrotesk = Space_Grotesk({
+  variable: "--font-space-grotesk",
   subsets: ["latin"],
-});
-
-const geistMono = Geist_Mono({
-  variable: "--font-geist-mono",
-  subsets: ["latin"],
+  weight: ["400", "500", "600", "700"],
 });
 
 export const metadata: Metadata = {
@@ -30,11 +26,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body
-        className={`${geistSans.variable} ${geistMono.variable} antialiased`}
+    <html lang="en" className={spaceGrotesk.variable}>
+      <body 
+        className="antialiased min-h-screen"
+        style={{ 
+          fontFamily: 'var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, sans-serif',
+          background: 'var(--background)',
+          color: 'var(--foreground)'
+        }}
       >
-        {children}
+        <div className="min-h-screen">
+          <main className="max-w-7xl mx-auto px-4 py-6 md:px-6 md:py-8 lg:px-8">
+            {children}
+          </main>
+        </div>
       </body>
     </html>
   );

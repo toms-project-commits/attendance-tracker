@@ -179,26 +179,26 @@ CREATE POLICY "Users manage their own profiles" ON profiles
 -- Fix subjects RLS policy
 DROP POLICY IF EXISTS "Users manage their own subjects" ON subjects;
 CREATE POLICY "Users manage their own subjects" ON subjects
-  FOR ALL USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- Fix timetable_slots RLS policy
 DROP POLICY IF EXISTS "Users manage their own timetable" ON timetable_slots;
 CREATE POLICY "Users manage their own timetable" ON timetable_slots
-  FOR ALL USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- Fix holidays RLS policy
 DROP POLICY IF EXISTS "Users manage their own holidays" ON holidays;
 CREATE POLICY "Users manage their own holidays" ON holidays
-  FOR ALL USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- Fix attendance_logs RLS policy
 DROP POLICY IF EXISTS "Users manage their own logs" ON attendance_logs;
 CREATE POLICY "Users manage their own logs" ON attendance_logs
-  FOR ALL USING (user_id = (SELECT auth.uid()))
-  WITH CHECK (user_id = (SELECT auth.uid()));
+  FOR ALL USING (auth.uid() = user_id)
+  WITH CHECK (auth.uid() = user_id);
 
 -- ============================================
 -- PART 12: Fix Function Security Issue

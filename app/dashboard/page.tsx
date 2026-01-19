@@ -9,7 +9,9 @@ import {
   PieChart,
   CheckCircle,
   ChevronRight,
-
+  AlertTriangle,
+  TrendingUp,
+  Zap,
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
@@ -26,35 +28,121 @@ import {
 } from 'date-fns';
 import useStudentData from '@/lib/hooks/useStudentData';
 
-// Types for better type safety
 interface QuickStatProps {
   label: string;
   value: string | number;
   sublabel: string;
-  color?: string;
+  bgColor: string;
+  textColor?: string;
+  icon?: React.ReactNode;
 }
 
-// Utility function for attendance calculations
 const calculateAttendancePercentage = (attended: number, total: number): number => {
   return total > 0 ? Math.round((attended / total) * 100) : 0;
 };
 
-// Memoized Quick Stat Component
-const QuickStat = memo<QuickStatProps>(({ label, value, sublabel, color = 'text-slate-600' }) => (
-  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all">
-    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{label}</div>
-    <div className={`text-2xl font-bold ${color} dark:brightness-110`}>{value}</div>
-    <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sublabel}</div>
+const QuickStat = memo<QuickStatProps>(({ label, value, sublabel, bgColor, textColor = 'text-black', icon }) => (
+  <div 
+    className={clsx(
+      "border-[3px] border-black p-5 transition-all duration-200",
+      "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+      "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+      "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
+      "dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+      bgColor
+    )}
+  >
+    <div className="flex items-start justify-between mb-2">
+      <span className={clsx("text-xs font-black uppercase tracking-wider", textColor)}>{label}</span>
+      {icon && <span className={clsx("opacity-70", textColor)}>{icon}</span>}
+    </div>
+    <div className={clsx("text-4xl font-black", textColor)}>{value}</div>
+    <div className={clsx("text-sm mt-1 font-semibold opacity-80", textColor)}>{sublabel}</div>
   </div>
 ));
 
 QuickStat.displayName = 'QuickStat';
 
+// Neo-Brutalism Button Component
+const BrutalButton = memo(({ 
+  children, 
+  onClick, 
+  className = '', 
+  variant = 'default',
+  href
+}: { 
+  children: React.ReactNode; 
+  onClick?: () => void; 
+  className?: string;
+  variant?: 'default' | 'primary' | 'danger' | 'success';
+  href?: string;
+}) => {
+  const baseClasses = clsx(
+    "inline-flex items-center justify-center px-6 py-3 font-bold text-base",
+    "border-[3px] border-black",
+    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+    "transition-all duration-150",
+    "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+    "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
+    "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
+    "dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+    "dark:active:shadow-none",
+    {
+      'bg-white text-black dark:bg-slate-800 dark:text-white': variant === 'default',
+      'bg-blue-500 text-white hover:bg-blue-600': variant === 'primary',
+      'bg-red-500 text-white hover:bg-red-600': variant === 'danger',
+      'bg-green-500 text-white hover:bg-green-600': variant === 'success',
+    },
+    className
+  );
+
+  if (href) {
+    return <Link href={href} className={baseClasses}>{children}</Link>;
+  }
+
+  return <button onClick={onClick} className={baseClasses}>{children}</button>;
+});
+
+BrutalButton.displayName = 'BrutalButton';
+
+// Neo-Brutalism Card Component
+const BrutalCard = memo(({ 
+  children, 
+  className = '',
+  hoverable = true,
+  as = 'div'
+}: { 
+  children: React.ReactNode; 
+  className?: string;
+  hoverable?: boolean;
+  as?: 'div' | 'article' | 'section';
+}) => {
+  const Component = as;
+  return (
+    <Component 
+      className={clsx(
+        "border-[3px] border-black bg-white p-6",
+        "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+        "dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
+        hoverable && [
+          "transition-all duration-200",
+          "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+          "dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
+        ],
+        className
+      )}
+    >
+      {children}
+    </Component>
+  );
+});
+
+BrutalCard.displayName = 'BrutalCard';
+
 const Dashboard = memo(function Dashboard() {
   const router = useRouter();
   const { user, profile, subjects, timetable, holidays, logs, loading: dataLoading } = useStudentData();
 
-  // Optimized auth check with useCallback
   const checkAuth = useCallback(() => {
     if (!dataLoading && !user) {
       router.push('/login');
@@ -155,6 +243,8 @@ const Dashboard = memo(function Dashboard() {
   }, [timetable]);
 
   const subjectCount = subjects.length;
+  const attendancePercent = calculateAttendancePercentage(stats.attended, stats.total);
+  const isSafe = stats.total === 0 || attendancePercent >= 75;
 
   const handleLogout = useCallback(async () => {
     try {
@@ -171,163 +261,252 @@ const Dashboard = memo(function Dashboard() {
 
   if (dataLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 transition-colors">
-        Loading your dashboard...
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="border-[3px] border-black bg-yellow-400 p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse dark:border-white">
+          <span className="text-xl font-black">⏳ Loading your dashboard...</span>
+        </div>
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors">
+    <div className="min-h-screen pb-24">
       {/* TOP NAVIGATION */}
-      <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
-          🎓 BunkSafe
+      <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
+        <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
+          <span className="text-2xl">🎓</span> BunkSafe
         </h1>
-        <button
-          onClick={handleLogout}
-          className="text-sm text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2 transition-colors font-medium"
-          aria-label="Sign out"
-        >
-          <LogOut size={16} /> Sign Out
-        </button>
+        <BrutalButton onClick={handleLogout} variant="danger" className="text-sm md:text-base">
+          <LogOut size={16} className="mr-2" /> Sign Out
+        </BrutalButton>
       </nav>
 
       {/* MAIN CONTENT */}
-      <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
+      <main className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
         {/* WELCOME BANNER */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-3xl p-8 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/50">
-          <div className="flex items-center justify-between gap-8 flex-col md:flex-row">
-            <div>
-              <h2 className="text-3xl font-bold mb-2">Welcome back, {userName}!</h2>
-              <p className="text-blue-100 text-lg">Track every class. Own your attendance. No excuses.</p>
+        <div className="border-[3px] border-black bg-blue-500 text-white p-6 md:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white">
+          <div className="flex items-center justify-between gap-6 flex-col lg:flex-row">
+            <div className="flex-1">
+              <h2 className="text-3xl md:text-4xl font-black mb-3">
+                Welcome back, {userName}! 👋
+              </h2>
+              <p className="text-lg md:text-xl font-bold opacity-90">
+                Track every class. Own your attendance. No excuses.
+              </p>
             </div>
 
-            {/* Donut Chart */}
+            {/* Attendance Circle - Prominent Display */}
             {stats.total > 0 && (
-              <div className="relative w-40 h-40 shrink-0">
-                <svg viewBox="0 0 36 36" className="w-full h-full rotate-[-90deg]">
-                  <path className="text-blue-400/30" d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
-                  <path className={clsx("transition-all duration-1000 ease-out", (stats.attended / stats.total) * 100 >= 75 ? "text-green-400" : "text-orange-400")} strokeDasharray={`${(stats.attended / stats.total) * 100}, 100`} d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round" />
+              <div className="relative w-36 h-36 md:w-44 md:h-44 shrink-0 border-[3px] border-white rounded-full bg-white/10 p-2">
+                <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
+                  <path 
+                    className="text-white/30" 
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="3" 
+                  />
+                  <path 
+                    className={clsx(
+                      "transition-all duration-1000 ease-out",
+                      attendancePercent >= 75 ? "text-green-400" : "text-red-400"
+                    )} 
+                    strokeDasharray={`${attendancePercent}, 100`} 
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
+                    fill="none" 
+                    stroke="currentColor" 
+                    strokeWidth="3" 
+                    strokeLinecap="round"
+                  />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-sm text-blue-100 font-bold uppercase">Semester</span>
-                  <span className="text-2xl font-bold text-white">{Math.round((stats.attended / stats.total) * 100)}%</span>
+                  <span className="text-xs font-black uppercase tracking-wider">Semester</span>
+                  <span className="text-4xl font-black">{attendancePercent}%</span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* HERO ACTION: MARK ATTENDANCE */}
-        <Link href="/mark" className="block transform transition-transform hover:scale-[1.01]" aria-label="Mark today's attendance">
-          <div className="bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors p-6 md:p-8 rounded-3xl shadow-xl flex items-center justify-between group cursor-pointer border border-slate-800 dark:border-slate-700">
-             <div className="flex items-center gap-6">
-               <div className="w-16 h-16 bg-slate-800 dark:bg-slate-700 rounded-2xl flex items-center justify-center text-blue-400 group-hover:text-white group-hover:bg-blue-600 transition-all shadow-inner" aria-hidden="true">
-                 <CheckCircle size={32} />
-               </div>
-               <div>
-                 <h3 className="text-white font-bold text-xl mb-1">Mark Today's Attendance</h3>
-                 <p className="text-slate-400 dark:text-slate-300 text-base group-hover:text-slate-300 transition-colors">
-                   Tap here to log your classes for today.
-                 </p>
-               </div>
-             </div>
-             <ChevronRight className="text-slate-600 dark:text-slate-500 group-hover:text-white transition-colors" size={28} aria-hidden="true" />
+        {/* STATUS INDICATOR - Most Prominent */}
+        <div 
+          className={clsx(
+            "border-[3px] border-black p-5 md:p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+            isSafe ? "bg-green-400" : "bg-red-500"
+          )}
+        >
+          <div className="flex items-center gap-4">
+            <div className={clsx(
+              "w-14 h-14 md:w-16 md:h-16 border-[3px] border-black flex items-center justify-center",
+              isSafe ? "bg-green-600" : "bg-red-700"
+            )}>
+              {isSafe ? (
+                <CheckCircle size={32} className="text-white" />
+              ) : (
+                <AlertTriangle size={32} className="text-white" />
+              )}
+            </div>
+            <div className="flex-1">
+              <h3 className={clsx(
+                "text-2xl md:text-3xl font-black",
+                isSafe ? "text-black" : "text-white"
+              )}>
+                {stats.total === 0 ? "🚀 READY TO START" : isSafe ? "✅ YOU'RE SAFE" : "⚠️ CRITICAL"}
+              </h3>
+              <p className={clsx(
+                "text-base md:text-lg font-bold",
+                isSafe ? "text-black/80" : "text-white/90"
+              )}>
+                {stats.total === 0 
+                  ? "Set up your subjects and timetable to begin tracking" 
+                  : isSafe 
+                    ? `Attendance at ${attendancePercent}% - Keep it up!`
+                    : `Attendance at ${attendancePercent}% - You need to attend more classes!`
+                }
+              </p>
+            </div>
+          </div>
+        </div>
+
+        {/* MARK ATTENDANCE - Primary CTA */}
+        <Link href="/mark" className="block group">
+          <div className="border-[3px] border-black bg-black text-white p-5 md:p-6 shadow-[6px_6px_0px_0px_rgba(251,191,36,1)] transition-all duration-200 hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(251,191,36,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none dark:bg-slate-700 dark:border-white">
+            <div className="flex items-center justify-between">
+              <div className="flex items-center gap-4 md:gap-6">
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-yellow-400 border-[3px] border-white flex items-center justify-center group-hover:bg-yellow-300 transition-colors">
+                  <CheckCircle size={28} className="text-black" />
+                </div>
+                <div>
+                  <h3 className="text-xl md:text-2xl font-black mb-1">
+                    Mark Today&apos;s Attendance →
+                  </h3>
+                  <p className="text-sm md:text-base font-semibold text-white/80">
+                    Tap here to log your classes for today
+                  </p>
+                </div>
+              </div>
+              <ChevronRight size={28} className="hidden md:block" />
+            </div>
           </div>
         </Link>
 
-        {/* QUICK STATS */}
-        <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+        {/* QUICK STATS - Bento Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           <QuickStat
             label="Attendance"
-            value={stats.total > 0 ? `${calculateAttendancePercentage(stats.attended, stats.total)}%` : '--'}
+            value={stats.total > 0 ? `${attendancePercent}%` : '--'}
             sublabel={`${stats.attended}/${stats.total} classes`}
-            color="text-blue-600"
+            bgColor="bg-blue-400"
+            textColor="text-black"
+            icon={<TrendingUp size={20} />}
           />
           <QuickStat
-            label="Today's Classes"
+            label="Today"
             value={todayClasses}
-            sublabel="scheduled"
-            color="text-green-600"
+            sublabel="classes scheduled"
+            bgColor="bg-purple-400"
+            textColor="text-black"
+            icon={<Calendar size={20} />}
           />
           <QuickStat
             label="Subjects"
             value={subjectCount}
-            sublabel="tracked"
-            color="text-purple-600"
+            sublabel="being tracked"
+            bgColor="bg-orange-400"
+            textColor="text-black"
+            icon={<BookOpen size={20} />}
           />
           <QuickStat
             label="Status"
-            value={stats.total === 0 ? 'Setup' : calculateAttendancePercentage(stats.attended, stats.total) >= 75 ? 'Safe' : 'Risk'}
-            sublabel="attendance"
-            color={stats.total === 0 ? 'text-slate-400' : calculateAttendancePercentage(stats.attended, stats.total) >= 75 ? 'text-green-600' : 'text-red-600'}
+            value={stats.total === 0 ? 'NEW' : isSafe ? 'SAFE' : 'AT RISK'}
+            sublabel={stats.total === 0 ? 'setup needed' : isSafe ? 'keep going!' : 'act now!'}
+            bgColor={stats.total === 0 ? "bg-yellow-400" : isSafe ? "bg-green-400" : "bg-red-500"}
+            textColor={isSafe || stats.total === 0 ? "text-black" : "text-white"}
+            icon={<Zap size={20} />}
           />
         </div>
 
-        {/* HELPFUL TIP */}
-        {stats.total === 0 && subjectCount === 0 ? (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-3xl p-6">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-2">Get Started</h3>
-            <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Start by adding your subjects and setting up your timetable to begin tracking attendance.</p>
-            <div className="flex gap-3">
-              <Link href="/subjects" className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm">
-                Add Subjects
-              </Link>
-              <Link href="/timetable" className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors text-sm">
-                Setup Timetable
-              </Link>
+        {/* HELPFUL TIP / ONBOARDING */}
+        {stats.total === 0 && subjectCount === 0 && (
+          <BrutalCard className="bg-yellow-400" hoverable={false}>
+            <h3 className="text-2xl font-black text-black mb-4">🎯 Get Started</h3>
+            <p className="text-black text-lg font-semibold mb-6">
+              Start by adding your subjects and setting up your timetable to begin tracking attendance.
+            </p>
+            <div className="flex flex-wrap gap-4">
+              <BrutalButton href="/subjects" variant="primary">
+                <BookOpen size={18} className="mr-2" /> Add Subjects
+              </BrutalButton>
+              <BrutalButton href="/timetable">
+                <Calendar size={18} className="mr-2" /> Setup Timetable
+              </BrutalButton>
             </div>
-          </div>
-        ) : stats.total > 0 && (stats.attended / stats.total) * 100 < 75 ? (
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/50 dark:to-red-950/50 border border-orange-200 dark:border-orange-800 rounded-3xl p-6">
-            <h3 className="font-bold text-slate-800 dark:text-white mb-2">⚠️ Attendance at Risk</h3>
-            <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Your attendance is below 75%. Check your analytics to see which subjects need attention.</p>
-            <Link href="/analytics" className="inline-block px-4 py-2 bg-orange-600 dark:bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors text-sm">
-              View Analytics
-            </Link>
-          </div>
-        ) : null}
+          </BrutalCard>
+        )}
 
-        {/* MANAGEMENT GRID */}
-        <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
+        {/* LOW ATTENDANCE WARNING */}
+        {stats.total > 0 && !isSafe && (
+          <BrutalCard className="bg-red-100 dark:bg-red-900/50" hoverable={false}>
+            <h3 className="text-2xl font-black text-red-600 dark:text-red-400 mb-4">
+              ⚠️ Attendance at Risk
+            </h3>
+            <p className="text-black dark:text-white text-lg font-semibold mb-6">
+              Your attendance is below 75%. Check your analytics to see which subjects need attention.
+            </p>
+            <BrutalButton href="/analytics" variant="danger">
+              <PieChart size={18} className="mr-2" /> View Analytics
+            </BrutalButton>
+          </BrutalCard>
+        )}
+
+        {/* MANAGEMENT GRID - Bento Style */}
+        <h2 className="text-2xl font-black text-black dark:text-white pt-4">
+          📚 Manage Your Classes
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
           {/* Card 1: Subjects */}
-          <Link href="/subjects">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-blue-100 dark:hover:border-blue-700 transition-all cursor-pointer group h-full">
-              <div className="h-14 w-14 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+          <Link href="/subjects" className="block">
+            <BrutalCard className="h-full bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50">
+              <div className="h-14 w-14 bg-blue-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <BookOpen size={28} />
               </div>
-              <h3 className="font-bold text-slate-800 dark:text-white text-xl mb-2">Subjects</h3>
-              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
-                Add your classes and targets. You can manage up to 10 subjects easily.
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+                Subjects
+              </h3>
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
+                Add your classes and set attendance targets. Manage up to 10 subjects.
               </p>
-            </div>
+            </BrutalCard>
           </Link>
 
           {/* Card 2: Timetable */}
-          <Link href="/timetable">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-purple-100 dark:hover:border-purple-700 transition-all cursor-pointer group h-full">
-              <div className="h-14 w-14 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+          <Link href="/timetable" className="block">
+            <BrutalCard className="h-full bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50">
+              <div className="h-14 w-14 bg-purple-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <Calendar size={28} />
               </div>
-              <h3 className="font-bold text-slate-800 dark:text-white text-xl mb-2">Timetable</h3>
-              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+                Timetable
+              </h3>
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
                 Set your weekly schedule with breaks, sports, and study hours.
               </p>
-            </div>
+            </BrutalCard>
           </Link>
 
           {/* Card 3: Analytics */}
-          <Link href="/analytics">
-            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-green-100 dark:hover:border-green-700 transition-all cursor-pointer group h-full">
-              <div className="h-14 w-14 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-400 mb-5 group-hover:bg-green-600 group-hover:text-white transition-colors">
+          <Link href="/analytics" className="block md:col-span-2 lg:col-span-1">
+            <BrutalCard className="h-full bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50">
+              <div className="h-14 w-14 bg-green-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <PieChart size={28} />
               </div>
-              <h3 className="font-bold text-slate-800 dark:text-white text-xl mb-2">Analytics</h3>
-              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+                Analytics
+              </h3>
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
                 View detailed stats, track progress, and get actionable insights.
               </p>
-            </div>
+            </BrutalCard>
           </Link>
         </div>
       </main>
