@@ -470,10 +470,10 @@ const Dashboard = memo(function Dashboard() {
               <div className="h-14 w-14 bg-blue-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <BookOpen size={28} />
               </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3 break-words">
                 Subjects
               </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed break-words">
                 Add your classes and set attendance targets. Manage up to 10 subjects.
               </p>
             </BrutalCard>
@@ -508,6 +508,13 @@ const Dashboard = memo(function Dashboard() {
               </p>
             </BrutalCard>
           </Link>
+        </div>
+
+        {/* Attribution */}
+        <div className="text-center pt-6 pb-4">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
+            A project by Thomas George
+          </p>
         </div>
       </main>
     </div>
