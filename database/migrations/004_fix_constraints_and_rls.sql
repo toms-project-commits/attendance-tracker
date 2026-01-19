@@ -240,3 +240,7 @@ COMMENT ON COLUMN profiles.saturday_offs IS 'Array of Saturday weeks (1-5) that 
 COMMENT ON COLUMN subjects.target_percentage IS 'Target attendance percentage for this subject';
 COMMENT ON COLUMN attendance_logs.status IS 'PRESENT, ABSENT, or CANCELLED';
 COMMENT ON COLUMN timetable_slots.slot_type IS 'Type of slot: SUBJECT, BREAK, SPORTS, LIBRARY, EXAM';
+
+-- Migration 004 Applied Successfully ✅
+-- Commit: 6b906da
+-- Date: January 19, 2026

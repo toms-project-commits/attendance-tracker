@@ -119,7 +119,7 @@ export default function LoginPage() {
           {/* Header */}
           <div className="text-center mb-8">
             <div className="inline-block border-[3px] border-black bg-blue-500 px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 dark:border-white">
-              <h1 className="text-3xl md:text-4xl font-black text-white">🎓 BunkSafe</h1>
+              <h1 className="text-3xl md:text-4xl font-black text-white"> BunkSafe</h1>
             </div>
             <p className="text-lg font-bold text-black dark:text-white mt-4">
               {isSignUp ? "Create your account" : "Welcome back!"}
@@ -268,7 +268,7 @@ export default function LoginPage() {
               {loading ? (
                 <Loader2 className="animate-spin mx-auto" size={24} />
               ) : (
-                isSignUp ? '🚀 Create Account' : '→ Log In'
+                isSignUp ? ' Create Account' : '→ Log In'
               )}
             </button>
           </form>

@@ -434,7 +434,7 @@ export default function AnalyticsPage() {
         {/* SUBJECT BREAKDOWN */}
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-xl font-black text-black dark:text-white">📚 Subject Breakdown</h2>
+            <h2 className="text-xl font-black text-black dark:text-white"> Subject Breakdown</h2>
             
             {/* Sort Buttons */}
             <div className="flex gap-2">

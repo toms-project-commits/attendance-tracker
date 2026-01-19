@@ -359,11 +359,11 @@ export default function SubjectsPage() {
 
         {/* SUBJECTS LIST */}
         <div className="space-y-4">
-          <h2 className="text-xl font-black text-black dark:text-white">📖 Your Classes ({subjects.length})</h2>
+          <h2 className="text-xl font-black text-black dark:text-white"> Your Classes ({subjects.length})</h2>
           
           {loading ? (
             <div className="border-[3px] border-black bg-yellow-400 p-6 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white">
-              <p className="text-black font-bold">⏳ Loading your subjects...</p>
+              <p className="text-black font-bold"> Loading your subjects...</p>
             </div>
           ) : subjects.length === 0 ? (
             <div className="border-[3px] border-black border-dashed bg-white p-8 text-center dark:bg-slate-800 dark:border-white">

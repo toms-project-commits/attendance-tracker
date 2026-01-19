@@ -272,7 +272,7 @@ export default function MarkAttendancePage() {
             </Link>
             <div className="flex-1">
               <h1 className="text-xl md:text-2xl font-black text-black dark:text-white">
-                ✏️ Mark Attendance
+                 Mark Attendance
               </h1>
               <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
                 Select status for each class
@@ -404,7 +404,7 @@ export default function MarkAttendancePage() {
             </div>
             <p className="text-xl font-black text-black dark:text-white">No classes scheduled!</p>
             <p className="text-base font-semibold text-gray-600 dark:text-gray-400 mt-2">
-              Enjoy your free time! 🎉
+              Enjoy your free time! 
             </p>
           </div>
         ) : (
@@ -652,7 +652,7 @@ export default function MarkAttendancePage() {
               {saving ? (
                 <>Saving... <Loader2 className="animate-spin" size={20} /></>
               ) : (
-                <>✅ CONFIRM & SAVE <Save size={20} /></>
+                <> CONFIRM & SAVE <Save size={20} /></>
               )}
             </button>
           </div>

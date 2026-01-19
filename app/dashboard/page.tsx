@@ -351,7 +351,7 @@ const Dashboard = memo(function Dashboard() {
                 "text-2xl md:text-3xl font-black",
                 isSafe ? "text-black" : "text-white"
               )}>
-                {stats.total === 0 ? "🚀 READY TO START" : isSafe ? "✅ YOU'RE SAFE" : "⚠️ CRITICAL"}
+                {stats.total === 0 ? " READY TO START" : isSafe ? " YOU'RE SAFE" : " CRITICAL"}
               </h3>
               <p className={clsx(
                 "text-base md:text-lg font-bold",
@@ -429,7 +429,7 @@ const Dashboard = memo(function Dashboard() {
         {/* HELPFUL TIP / ONBOARDING */}
         {stats.total === 0 && subjectCount === 0 && (
           <BrutalCard className="bg-yellow-400" hoverable={false}>
-            <h3 className="text-2xl font-black text-black mb-4">🎯 Get Started</h3>
+            <h3 className="text-2xl font-black text-black mb-4"> Get Started</h3>
             <p className="text-black text-lg font-semibold mb-6">
               Start by adding your subjects and setting up your timetable to begin tracking attendance.
             </p>
