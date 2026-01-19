@@ -2,7 +2,7 @@
 import { useCallback, useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, Clock, Coffee, Trophy, Library } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Clock, Coffee, Trophy, Library, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
@@ -32,6 +32,7 @@ export default function TimetablePage() {
   
   // MODAL STATE
   const [isModalOpen, setIsModalOpen] = useState(false);
+  const [editingSlotId, setEditingSlotId] = useState<string | null>(null);
   
   // We keep the "Source of Truth" as 24h strings (e.g., "14:00")
   // The UI will convert this back and forth for the user.
@@ -161,8 +162,28 @@ export default function TimetablePage() {
     return { hour: displayHour, minute: m, ampm };
   };
 
-  // 2. ADD SLOT
-  const handleAddSlot = async () => {
+  // Open modal for adding
+  const openAddModal = () => {
+    setEditingSlotId(null);
+    setNewSlotStart('09:00');
+    setNewSlotEnd('10:00');
+    setSelectedType('SUBJECT');
+    setSelectedSubjectId('');
+    setIsModalOpen(true);
+  };
+
+  // Open modal for editing
+  const openEditModal = (slot: Slot) => {
+    setEditingSlotId(slot.id);
+    setNewSlotStart(slot.start_time);
+    setNewSlotEnd(slot.end_time);
+    setSelectedType(slot.slot_type);
+    setSelectedSubjectId(slot.subject_id || '');
+    setIsModalOpen(true);
+  };
+
+  // 2. ADD OR UPDATE SLOT
+  const handleSaveSlot = async () => {
     // Validation
     if (!newSlotStart || !newSlotEnd) {
       alert('Please select both start and end times');
@@ -187,42 +208,62 @@ export default function TimetablePage() {
         return;
       }
 
-      const tempId = Math.random().toString(); 
-      const subject = subjects.find(s => s.id === selectedSubjectId);
-      
-      const newSlot: Slot = {
-        id: tempId,
-        day_of_week: activeDay,
-        start_time: newSlotStart,
-        end_time: newSlotEnd,
-        slot_type: selectedType as Slot['slot_type'],
-        subject_id: selectedSubjectId,
-        subject_name: subject?.name,
-        color: subject?.color_hex
-      };
+      if (editingSlotId) {
+        // UPDATE existing slot
+        const { error } = await supabase
+          .from('timetable_slots')
+          .update({
+            start_time: newSlotStart,
+            end_time: newSlotEnd,
+            slot_type: selectedType,
+            subject_id: selectedType === 'SUBJECT' ? selectedSubjectId : null,
+          })
+          .eq('id', editingSlotId);
 
-      setSlots(prev => [...prev, newSlot].sort((a, b) => a.start_time.localeCompare(b.start_time)));
+        if (error) {
+          throw error;
+        }
+      } else {
+        // INSERT new slot
+        const tempId = Math.random().toString(); 
+        const subject = subjects.find(s => s.id === selectedSubjectId);
+        
+        const newSlot: Slot = {
+          id: tempId,
+          day_of_week: activeDay,
+          start_time: newSlotStart,
+          end_time: newSlotEnd,
+          slot_type: selectedType as Slot['slot_type'],
+          subject_id: selectedSubjectId,
+          subject_name: subject?.name,
+          color: subject?.color_hex
+        };
+
+        setSlots(prev => [...prev, newSlot].sort((a, b) => a.start_time.localeCompare(b.start_time)));
+
+        const { data, error } = await supabase.from('timetable_slots').insert({
+          user_id: user.id,
+          day_of_week: activeDay,
+          start_time: newSlotStart,
+          end_time: newSlotEnd,
+          slot_type: selectedType,
+          subject_id: selectedType === 'SUBJECT' ? selectedSubjectId : null,
+        }).select();
+
+        if (error) {
+          throw error;
+        }
+
+        if (data && data.length > 0) {
+          setSlots(prev => prev.map(s => s.id === tempId ? { ...s, id: data[0].id } : s));
+        }
+      }
+
       setIsModalOpen(false);
-
-      const { data, error } = await supabase.from('timetable_slots').insert({
-        user_id: user.id,
-        day_of_week: activeDay,
-        start_time: newSlotStart,
-        end_time: newSlotEnd,
-        slot_type: selectedType,
-        subject_id: selectedType === 'SUBJECT' ? selectedSubjectId : null,
-      }).select();
-
-      if (error) {
-        throw error;
-      }
-
-      if (data && data.length > 0) {
-        setSlots(prev => prev.map(s => s.id === tempId ? { ...s, id: data[0].id } : s));
-      }
+      fetchData(); // Refresh to get updated data
     } catch (error) {
-      console.error('Error adding slot:', error);
-      alert('Failed to add class. Please try again.');
+      console.error('Error saving slot:', error);
+      alert('Failed to save class. Please try again.');
       // Revert optimistic update
       fetchData();
     }
@@ -277,6 +318,7 @@ export default function TimetablePage() {
         </select>
         {/* AM/PM */}
         <button 
+          type="button"
           onClick={() => update(hour, minute, ampm === 'AM' ? 'PM' : 'AM')}
           className={`ml-1 px-3 py-2 rounded-lg text-xs font-bold transition-colors ${ampm === 'AM' ? 'bg-orange-100 text-orange-600' : 'bg-indigo-100 text-indigo-600'}`}
         >
@@ -311,7 +353,7 @@ export default function TimetablePage() {
             </button>
 
             <button 
-              onClick={() => setIsModalOpen(true)}
+              onClick={openAddModal}
               className="bg-slate-900 text-white px-4 py-2 rounded-xl text-sm font-bold flex items-center gap-2 hover:bg-slate-800 transition-colors shadow-lg shadow-slate-200"
               aria-label="Add new class"
             >
@@ -354,7 +396,7 @@ export default function TimetablePage() {
               <Clock size={32} />
             </div>
             <p>No classes scheduled for {DAYS[activeDay - 1]}.</p>
-            <button onClick={() => setIsModalOpen(true)} className="text-blue-600 font-bold mt-2 hover:underline">
+            <button onClick={openAddModal} className="text-blue-600 font-bold mt-2 hover:underline">
               Add one now?
             </button>
           </div>
@@ -397,13 +439,24 @@ export default function TimetablePage() {
                       <p className="text-xs text-slate-400 mt-1 uppercase tracking-wide font-semibold">{slot.slot_type}</p>
                     </div>
                     
-                    <button 
-                      onClick={() => handleDeleteSlot(slot.id)}
-                      className="text-slate-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
-                      aria-label={`Delete ${slot.slot_type === 'SUBJECT' ? slot.subject_name : slot.slot_type} class`}
-                    >
-                      <Trash2 size={16} />
-                    </button>
+                    <div className="flex gap-2">
+                      <button 
+                        onClick={() => openEditModal(slot)}
+                        className="text-slate-300 hover:text-blue-500 p-2 rounded-full hover:bg-blue-50 transition-colors"
+                        aria-label={`Edit ${slot.slot_type === 'SUBJECT' ? slot.subject_name : slot.slot_type} class`}
+                        title="Edit Class"
+                      >
+                        <Edit2 size={16} />
+                      </button>
+                      <button 
+                        onClick={() => handleDeleteSlot(slot.id)}
+                        className="text-slate-300 hover:text-red-500 p-2 rounded-full hover:bg-red-50 transition-colors"
+                        aria-label={`Delete ${slot.slot_type === 'SUBJECT' ? slot.subject_name : slot.slot_type} class`}
+                        title="Delete Class"
+                      >
+                        <Trash2 size={16} />
+                      </button>
+                    </div>
                   </div>
                 </div>
               </div>
@@ -412,11 +465,13 @@ export default function TimetablePage() {
         )}
       </div>
 
-      {/* ADD CLASS MODAL */}
+      {/* ADD/EDIT CLASS MODAL */}
       {isModalOpen && (
         <div className="fixed inset-0 bg-black/50 z-50 flex items-end md:items-center justify-center p-4 backdrop-blur-sm">
           <div className="bg-white w-full max-w-md rounded-3xl p-6 shadow-2xl animate-in slide-in-from-bottom-10">
-            <h2 className="text-xl font-bold text-slate-900 mb-6">Add to {DAYS[activeDay - 1]}</h2>
+            <h2 className="text-xl font-bold text-slate-900 mb-6">
+              {editingSlotId ? 'Edit Class' : `Add to ${DAYS[activeDay - 1]}`}
+            </h2>
 
             {/* 1. TIME INPUTS (Conditional Render) */}
             <div className="flex flex-col gap-4 mb-6">
@@ -454,6 +509,7 @@ export default function TimetablePage() {
               {['SUBJECT', 'BREAK', 'LIBRARY', 'SPORTS'].map(type => (
                 <button
                   key={type}
+                  type="button"
                   onClick={() => setSelectedType(type)}
                   className={clsx(
                     "py-2 rounded-lg text-[10px] font-bold uppercase transition-all",
@@ -475,6 +531,7 @@ export default function TimetablePage() {
                   {subjects.map(sub => (
                     <button
                       key={sub.id}
+                      type="button"
                       onClick={() => setSelectedSubjectId(sub.id)}
                       className={clsx(
                         "p-3 rounded-xl text-sm font-bold text-left transition-all border-2",
@@ -496,16 +553,18 @@ export default function TimetablePage() {
             {/* ACTION BUTTONS */}
             <div className="flex gap-3">
               <button 
+                type="button"
                 onClick={() => setIsModalOpen(false)}
                 className="flex-1 py-3 text-slate-500 font-bold hover:bg-slate-50 rounded-xl"
               >
                 Cancel
               </button>
               <button 
-                onClick={handleAddSlot}
+                type="button"
+                onClick={handleSaveSlot}
                 className="flex-1 py-3 bg-blue-600 text-white font-bold rounded-xl hover:bg-blue-700 shadow-lg shadow-blue-200"
               >
-                Save Class
+                {editingSlotId ? 'Update Class' : 'Save Class'}
               </button>
             </div>
 

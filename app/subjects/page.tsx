@@ -2,7 +2,7 @@
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, BookOpen } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, BookOpen, Edit2 } from 'lucide-react';
 import Link from 'next/link';
 
 // Define what a "Subject" looks like
@@ -32,6 +32,9 @@ export default function SubjectsPage() {
   const [newName, setNewName] = useState('');
   const [newTarget, setNewTarget] = useState(75);
   const [selectedColor, setSelectedColor] = useState(COLORS[0]);
+  
+  // Edit State
+  const [editingId, setEditingId] = useState<string | null>(null);
 
   // 1. FETCH SUBJECTS ON LOAD
   useEffect(() => {
@@ -65,8 +68,8 @@ export default function SubjectsPage() {
     }
   };
 
-  // 2. ADD NEW SUBJECT
-  const handleAddSubject = async (e: React.FormEvent) => {
+  // 2. ADD OR UPDATE SUBJECT
+  const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
     if (!newName.trim()) {
       alert('Please enter a subject name');
@@ -85,28 +88,67 @@ export default function SubjectsPage() {
         return;
       }
 
-      const { error } = await supabase
-        .from('subjects')
-        .insert({
-          user_id: user.id,
-          name: newName.trim(),
-          target_percentage: newTarget,
-          color_hex: selectedColor,
-        });
+      if (editingId) {
+        // UPDATE existing subject
+        const { error } = await supabase
+          .from('subjects')
+          .update({
+            name: newName.trim(),
+            target_percentage: newTarget,
+            color_hex: selectedColor,
+          })
+          .eq('id', editingId);
 
-      if (error) {
-        throw error;
+        if (error) {
+          throw error;
+        }
+      } else {
+        // INSERT new subject
+        const { error } = await supabase
+          .from('subjects')
+          .insert({
+            user_id: user.id,
+            name: newName.trim(),
+            target_percentage: newTarget,
+            color_hex: selectedColor,
+          });
+
+        if (error) {
+          throw error;
+        }
       }
 
-      setNewName(''); // Clear form
+      // Clear form and reset edit mode
+      setNewName('');
+      setNewTarget(75);
+      setSelectedColor(COLORS[0]);
+      setEditingId(null);
       fetchSubjects(); // Refresh list
     } catch (error) {
-      console.error('Error adding subject:', error);
-      alert('Failed to add subject. Please try again.');
+      console.error('Error saving subject:', error);
+      alert('Failed to save subject. Please try again.');
     }
   };
 
-  // 3. DELETE SUBJECT
+  // 3. START EDITING
+  const handleEdit = (subject: Subject) => {
+    setEditingId(subject.id);
+    setNewName(subject.name);
+    setNewTarget(subject.target_percentage);
+    setSelectedColor(subject.color_hex);
+    // Scroll to form
+    window.scrollTo({ top: 0, behavior: 'smooth' });
+  };
+
+  // 4. CANCEL EDITING
+  const handleCancelEdit = () => {
+    setEditingId(null);
+    setNewName('');
+    setNewTarget(75);
+    setSelectedColor(COLORS[0]);
+  };
+
+  // 5. DELETE SUBJECT
   const handleDelete = async (id: string) => {
     if (!confirm("Are you sure? This will delete all attendance data for this subject.")) return;
 
@@ -118,6 +160,11 @@ export default function SubjectsPage() {
 
       if (error) {
         throw error;
+      }
+
+      // If we're editing this subject, cancel edit mode
+      if (editingId === id) {
+        handleCancelEdit();
       }
 
       fetchSubjects();
@@ -139,16 +186,24 @@ export default function SubjectsPage() {
           <h1 className="text-2xl font-bold text-slate-800">Manage Subjects</h1>
         </div>
 
-        {/* ADD NEW SUBJECT FORM */}
+        {/* ADD/EDIT SUBJECT FORM */}
         <div className="bg-white p-6 rounded-2xl shadow-sm border border-slate-100 space-y-4">
           <div>
             <h2 className="text-lg font-bold text-slate-800 mb-2 flex items-center gap-2">
-              <Plus size={20} className="text-blue-600" /> Add New Subject
+              {editingId ? (
+                <>
+                  <Edit2 size={20} className="text-blue-600" /> Edit Subject
+                </>
+              ) : (
+                <>
+                  <Plus size={20} className="text-blue-600" /> Add New Subject
+                </>
+              )}
             </h2>
             <p className="text-xs text-slate-500">Set a target attendance percentage for each subject to track your progress.</p>
           </div>
           
-          <form onSubmit={handleAddSubject} className="space-y-4">
+          <form onSubmit={handleSubmit} className="space-y-4">
             <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
               {/* Name Input */}
               <div>
@@ -198,13 +253,24 @@ export default function SubjectsPage() {
               </div>
             </div>
 
-            <button
-              type="submit"
-              disabled={!newName}
-              className="w-full bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
-            >
-              Add Subject
-            </button>
+            <div className="flex gap-3">
+              {editingId && (
+                <button
+                  type="button"
+                  onClick={handleCancelEdit}
+                  className="flex-1 bg-slate-200 text-slate-700 py-3 rounded-xl font-bold hover:bg-slate-300 transition-colors"
+                >
+                  Cancel
+                </button>
+              )}
+              <button
+                type="submit"
+                disabled={!newName}
+                className="flex-1 bg-slate-900 text-white py-3 rounded-xl font-bold hover:bg-slate-800 disabled:opacity-50 disabled:cursor-not-allowed transition-colors"
+              >
+                {editingId ? 'Update Subject' : 'Add Subject'}
+              </button>
+            </div>
           </form>
         </div>
 
@@ -225,7 +291,10 @@ export default function SubjectsPage() {
           ) : (
             <div className="grid grid-cols-1 gap-4">
               {subjects.map((sub) => (
-                <div key={sub.id} className="bg-white p-4 rounded-xl shadow-sm border border-slate-100 flex items-center justify-between group">
+                <div 
+                  key={sub.id} 
+                  className={`bg-white p-4 rounded-xl shadow-sm border transition-all ${editingId === sub.id ? 'border-blue-500 ring-2 ring-blue-200' : 'border-slate-100'} flex items-center justify-between group`}
+                >
                   <div className="flex items-center gap-4">
                     <div className="w-3 h-12 rounded-full" style={{ backgroundColor: sub.color_hex }}></div>
                     <div>
@@ -234,14 +303,24 @@ export default function SubjectsPage() {
                     </div>
                   </div>
                   
-                  <button
-                    onClick={() => handleDelete(sub.id)}
-                    className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
-                    aria-label={`Delete ${sub.name}`}
-                    title="Delete Subject"
-                  >
-                    <Trash2 size={18} />
-                  </button>
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => handleEdit(sub)}
+                      className="p-2 text-slate-300 hover:text-blue-500 hover:bg-blue-50 rounded-lg transition-colors"
+                      aria-label={`Edit ${sub.name}`}
+                      title="Edit Subject"
+                    >
+                      <Edit2 size={18} />
+                    </button>
+                    <button
+                      onClick={() => handleDelete(sub.id)}
+                      className="p-2 text-slate-300 hover:text-red-500 hover:bg-red-50 rounded-lg transition-colors"
+                      aria-label={`Delete ${sub.name}`}
+                      title="Delete Subject"
+                    >
+                      <Trash2 size={18} />
+                    </button>
+                  </div>
                 </div>
               ))}
             </div>
