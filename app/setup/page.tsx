@@ -1,4 +1,4 @@
-'use client';
+ 'use client';
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
@@ -254,27 +254,27 @@ export default function SetupPage() {
   const ordinalSuffix = ["", "1st", "2nd", "3rd", "4th", "5th"];
 
   return (
-    <div className="min-h-screen bg-slate-50 p-4 md:p-8 flex justify-center">
-      <div className="max-w-3xl w-full bg-white rounded-3xl shadow-xl overflow-hidden border border-slate-100 flex flex-col">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 p-4 md:p-8 flex justify-center transition-colors">
+      <div className="max-w-3xl w-full bg-white dark:bg-slate-800 rounded-3xl shadow-xl overflow-hidden border border-slate-100 dark:border-slate-700 flex flex-col transition-colors">
         
         {/* HEADER */}
-        <div className="bg-slate-900 p-8 text-white">
+        <div className="bg-slate-900 dark:bg-slate-900 p-8 text-white">
           <h1 className="text-3xl font-bold flex items-center gap-3">
             <CalIcon /> Semester Setup
           </h1>
-          <p className="text-slate-400 mt-2">Let's set up your calendar.</p> {/* eslint-disable-line react/no-unescaped-entities */}
+          <p className="text-slate-400 dark:text-slate-400 mt-2">Let's set up your calendar.</p> {/* eslint-disable-line react/no-unescaped-entities */}
         </div>
 
         {checkingAuth ? (
           <div className="p-8 flex items-center justify-center">
-            <p className="text-slate-500">Checking authentication...</p>
+            <p className="text-slate-500 dark:text-slate-400">Checking authentication...</p>
           </div>
         ) : (
         <div className="p-8 space-y-10">
           
           {/* ERROR MESSAGE */}
           {error && (
-            <div className="bg-red-50 border border-red-200 rounded-xl p-4 flex items-start gap-3 text-red-700">
+            <div className="bg-red-50 dark:bg-red-900/30 border border-red-200 dark:border-red-800 rounded-xl p-4 flex items-start gap-3 text-red-700 dark:text-red-400">
               <AlertCircle className="shrink-0 mt-0.5" size={20} />
               <p className="text-sm font-medium">{error}</p>
             </div>
@@ -282,15 +282,15 @@ export default function SetupPage() {
 
           {/* STEP 0: USERNAME */}
           <section className="space-y-4">
-            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b pb-2">Choose Your Username</h3>
-            <div className="bg-amber-50 p-4 rounded-xl flex gap-3 items-start text-sm text-amber-800 border border-amber-200">
+            <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 pb-2">Choose Your Username</h3>
+            <div className="bg-amber-50 dark:bg-amber-900/30 p-4 rounded-xl flex gap-3 items-start text-sm text-amber-800 dark:text-amber-300 border border-amber-200 dark:border-amber-800">
               <Info className="shrink-0 mt-0.5" size={18} />
               <p>
                 <strong>Important:</strong> Your username is permanent and cannot be changed later. Choose wisely!
               </p>
             </div>
             <div>
-              <label htmlFor="username" className="block text-sm font-medium text-slate-700 mb-1">
+              <label htmlFor="username" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">
                 Username (3-20 characters)
               </label>
               <div className="relative">
@@ -298,10 +298,10 @@ export default function SetupPage() {
                   id="username"
                   type="text" 
                   className={cn(
-                    "w-full p-3 bg-slate-50 border rounded-xl focus:ring-2 outline-none pr-10",
-                    usernameError ? "border-red-300 focus:ring-red-500" : 
-                    usernameAvailable === true ? "border-green-300 focus:ring-green-500" :
-                    "border-slate-200 focus:ring-blue-500"
+                    "w-full p-3 bg-slate-50 dark:bg-slate-700 border rounded-xl focus:ring-2 outline-none pr-10 text-slate-900 dark:text-white transition-colors",
+                    usernameError ? "border-red-300 dark:border-red-700 focus:ring-red-500" : 
+                    usernameAvailable === true ? "border-green-300 dark:border-green-700 focus:ring-green-500" :
+                    "border-slate-200 dark:border-slate-600 focus:ring-blue-500"
                   )}
                   value={username}
                   onChange={(e) => {
@@ -341,14 +341,14 @@ export default function SetupPage() {
 
           {/* STEP 1: DATE RANGE */}
           <section className="space-y-4">
-            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b pb-2">1. Semester Dates</h3>
+            <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 pb-2">1. Semester Dates</h3>
             <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
               <div>
-                <label htmlFor="start-date" className="block text-sm font-medium text-slate-700 mb-1">When does it start?</label>
+                <label htmlFor="start-date" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">When does it start?</label>
                 <input 
                   id="start-date"
                   type="date" 
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white transition-colors"
                   value={startDate}
                   onChange={(e) => {
                     setStartDate(e.target.value);
@@ -363,11 +363,11 @@ export default function SetupPage() {
                 />
               </div>
               <div>
-                <label htmlFor="end-date" className="block text-sm font-medium text-slate-700 mb-1">When does it end?</label>
+                <label htmlFor="end-date" className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">When does it end?</label>
                 <input 
                   id="end-date"
                   type="date" 
-                  className="w-full p-3 bg-slate-50 border border-slate-200 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none"
+                  className="w-full p-3 bg-slate-50 dark:bg-slate-700 border border-slate-200 dark:border-slate-600 rounded-xl focus:ring-2 focus:ring-blue-500 outline-none text-slate-900 dark:text-white transition-colors"
                   value={endDate}
                   onChange={(e) => {
                     setEndDate(e.target.value);
@@ -386,9 +386,9 @@ export default function SetupPage() {
 
           {/* STEP 2: SATURDAY RULES (IMPROVED) */}
           <section className="space-y-4">
-            <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider border-b pb-2">2. Recurring Saturdays</h3>
+            <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider border-b border-slate-200 dark:border-slate-700 pb-2">2. Recurring Saturdays</h3>
             
-            <div className="bg-blue-50 p-4 rounded-xl flex gap-3 items-start text-sm text-blue-700">
+            <div className="bg-blue-50 dark:bg-blue-900/30 p-4 rounded-xl flex gap-3 items-start text-sm text-blue-700 dark:text-blue-300 border border-blue-200 dark:border-blue-800">
               <Info className="shrink-0 mt-0.5" size={18} />
               <p>
                 <strong>How to use:</strong> Does your college have a rule like "Second and Fourth Saturdays are off"? {/* eslint-disable-line react/no-unescaped-entities */}
@@ -407,12 +407,12 @@ export default function SetupPage() {
                     className={cn(
                       "aspect-[4/5] rounded-xl flex flex-col items-center justify-center transition-all border-2 gap-1",
                       isOff 
-                        ? "bg-red-50 border-red-500 text-red-600 shadow-sm" 
-                        : "bg-white border-slate-200 text-slate-400 hover:border-blue-300 hover:text-blue-500"
+                        ? "bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-600 text-red-600 dark:text-red-400 shadow-sm" 
+                        : "bg-white dark:bg-slate-700 border-slate-200 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-blue-300 dark:hover:border-blue-600 hover:text-blue-500 dark:hover:text-blue-400"
                     )}
                   >
                     <span className="text-sm font-semibold">{ordinalSuffix[num]} Sat</span>
-                    <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full", isOff ? "bg-red-100" : "bg-slate-100")}>
+                    <span className={cn("text-[10px] font-bold px-2 py-1 rounded-full", isOff ? "bg-red-100 dark:bg-red-800/50" : "bg-slate-100 dark:bg-slate-600")}>
                       {isOff ? 'HOLIDAY' : 'WORKING'}
                     </span>
                   </button>
@@ -424,20 +424,20 @@ export default function SetupPage() {
           {/* STEP 3: THE CALENDAR GRID */}
           {startDate && endDate && (
             <section className="space-y-6">
-              <div className="flex justify-between items-end border-b pb-2">
-                 <h3 className="text-sm font-bold text-blue-600 uppercase tracking-wider">3. Specific Holidays</h3>
+              <div className="flex justify-between items-end border-b border-slate-200 dark:border-slate-700 pb-2">
+                 <h3 className="text-sm font-bold text-blue-600 dark:text-blue-400 uppercase tracking-wider">3. Specific Holidays</h3>
               </div>
-              <p className="text-sm text-slate-500">Tap specific dates on the calendar below to toggle them as holidays (e.g., Festivals, Exam Breaks).</p>
+              <p className="text-sm text-slate-500 dark:text-slate-400">Tap specific dates on the calendar below to toggle them as holidays (e.g., Festivals, Exam Breaks).</p>
               
               <div className="grid grid-cols-1 md:grid-cols-2 gap-8">
                 {getMonthsToDisplay().map((monthStart) => (
-                  <div key={monthStart.toString()} className="bg-slate-50 p-4 rounded-2xl border border-slate-100">
-                    <h4 className="font-bold text-slate-800 mb-3 text-center">
+                  <div key={monthStart.toString()} className="bg-slate-50 dark:bg-slate-700/50 p-4 rounded-2xl border border-slate-100 dark:border-slate-600">
+                    <h4 className="font-bold text-slate-800 dark:text-white mb-3 text-center">
                       {format(monthStart, 'MMMM yyyy')}
                     </h4>
                     
                     {/* Days Header */}
-                    <div className="grid grid-cols-7 text-xs text-slate-400 mb-2 text-center font-semibold">
+                    <div className="grid grid-cols-7 text-xs text-slate-400 dark:text-slate-500 mb-2 text-center font-semibold">
                       {['S','M','T','W','T','F','S'].map((d, i) => <div key={i}>{d}</div>)}
                     </div>
 
@@ -495,10 +495,10 @@ export default function SetupPage() {
                             className={cn(
                               "aspect-square rounded-lg text-sm flex items-center justify-center transition-all",
                               isAutoHoliday 
-                                ? "text-red-300 cursor-not-allowed font-medium bg-red-50/50" // Auto (Sun/Sat)
+                                ? "text-red-300 dark:text-red-600 cursor-not-allowed font-medium bg-red-50/50 dark:bg-red-900/20" // Auto (Sun/Sat)
                                 : isManualHoliday
-                                  ? "bg-red-500 text-white shadow-sm font-bold" // Manual Clicked
-                                  : "bg-white hover:bg-blue-50 text-slate-700 border border-slate-100 shadow-sm" // Normal
+                                  ? "bg-red-500 dark:bg-red-600 text-white shadow-sm font-bold" // Manual Clicked
+                                  : "bg-white dark:bg-slate-600 hover:bg-blue-50 dark:hover:bg-blue-900/30 text-slate-700 dark:text-slate-200 border border-slate-100 dark:border-slate-500 shadow-sm" // Normal
                             )}
                           >
                             {format(day, 'd')}
@@ -516,7 +516,7 @@ export default function SetupPage() {
           <button
             onClick={handleSave}
             disabled={!username || !usernameAvailable || !startDate || !endDate || loading || checkingUsername}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
+            className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-bold py-4 rounded-xl shadow-lg flex items-center justify-center gap-2 transition-all disabled:opacity-50 disabled:cursor-not-allowed"
             aria-label="Save semester setup and continue"
           >
             {loading ? 'Setting up...' : 'Save & Continue'} 

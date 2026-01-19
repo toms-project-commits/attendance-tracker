@@ -41,10 +41,10 @@ const calculateAttendancePercentage = (attended: number, total: number): number 
 
 // Memoized Quick Stat Component
 const QuickStat = memo<QuickStatProps>(({ label, value, sublabel, color = 'text-slate-600' }) => (
-  <div className="bg-white p-4 rounded-2xl shadow-sm border border-slate-100 hover:shadow-md transition-shadow">
-    <div className="text-xs font-bold text-slate-400 uppercase tracking-widest mb-2">{label}</div>
-    <div className={`text-2xl font-bold ${color}`}>{value}</div>
-    <div className="text-xs text-slate-400 mt-1">{sublabel}</div>
+  <div className="bg-white dark:bg-slate-800 p-4 rounded-2xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md transition-all">
+    <div className="text-xs font-bold text-slate-400 dark:text-slate-500 uppercase tracking-widest mb-2">{label}</div>
+    <div className={`text-2xl font-bold ${color} dark:brightness-110`}>{value}</div>
+    <div className="text-xs text-slate-400 dark:text-slate-500 mt-1">{sublabel}</div>
   </div>
 ));
 
@@ -171,22 +171,22 @@ const Dashboard = memo(function Dashboard() {
 
   if (dataLoading) {
     return (
-      <div className="min-h-screen flex items-center justify-center text-slate-500 bg-slate-50">
+      <div className="min-h-screen flex items-center justify-center text-slate-500 dark:text-slate-400 bg-slate-50 dark:bg-slate-950 transition-colors">
         Loading your dashboard...
       </div>
     );
   }
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-20">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-20 transition-colors">
       {/* TOP NAVIGATION */}
-      <nav className="bg-white border-b border-slate-200 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
-        <h1 className="text-xl font-bold text-slate-800 flex items-center gap-2">
+      <nav className="bg-white dark:bg-slate-900 border-b border-slate-200 dark:border-slate-800 px-6 py-4 flex justify-between items-center sticky top-0 z-10 shadow-sm">
+        <h1 className="text-xl font-bold text-slate-800 dark:text-white flex items-center gap-2">
           🎓 BunkSafe
         </h1>
         <button
           onClick={handleLogout}
-          className="text-sm text-slate-500 hover:text-red-600 flex items-center gap-2 transition-colors font-medium"
+          className="text-sm text-slate-500 dark:text-slate-400 hover:text-red-600 dark:hover:text-red-400 flex items-center gap-2 transition-colors font-medium"
           aria-label="Sign out"
         >
           <LogOut size={16} /> Sign Out
@@ -196,7 +196,7 @@ const Dashboard = memo(function Dashboard() {
       {/* MAIN CONTENT */}
       <main className="max-w-5xl mx-auto p-4 md:p-8 space-y-8">
         {/* WELCOME BANNER */}
-        <div className="bg-gradient-to-r from-blue-600 to-blue-700 rounded-3xl p-8 text-white shadow-lg shadow-blue-200">
+        <div className="bg-gradient-to-r from-blue-600 to-blue-700 dark:from-blue-700 dark:to-blue-800 rounded-3xl p-8 text-white shadow-lg shadow-blue-200 dark:shadow-blue-900/50">
           <div className="flex items-center justify-between gap-8 flex-col md:flex-row">
             <div>
               <h2 className="text-3xl font-bold mb-2">Welcome back, {userName}!</h2>
@@ -221,19 +221,19 @@ const Dashboard = memo(function Dashboard() {
 
         {/* HERO ACTION: MARK ATTENDANCE */}
         <Link href="/mark" className="block transform transition-transform hover:scale-[1.01]" aria-label="Mark today's attendance">
-          <div className="bg-slate-900 hover:bg-slate-800 transition-colors p-6 md:p-8 rounded-3xl shadow-xl flex items-center justify-between group cursor-pointer border border-slate-800">
+          <div className="bg-slate-900 dark:bg-slate-800 hover:bg-slate-800 dark:hover:bg-slate-700 transition-colors p-6 md:p-8 rounded-3xl shadow-xl flex items-center justify-between group cursor-pointer border border-slate-800 dark:border-slate-700">
              <div className="flex items-center gap-6">
-               <div className="w-16 h-16 bg-slate-800 rounded-2xl flex items-center justify-center text-blue-400 group-hover:text-white group-hover:bg-blue-600 transition-all shadow-inner" aria-hidden="true">
+               <div className="w-16 h-16 bg-slate-800 dark:bg-slate-700 rounded-2xl flex items-center justify-center text-blue-400 group-hover:text-white group-hover:bg-blue-600 transition-all shadow-inner" aria-hidden="true">
                  <CheckCircle size={32} />
                </div>
                <div>
                  <h3 className="text-white font-bold text-xl mb-1">Mark Today's Attendance</h3>
-                 <p className="text-slate-400 text-base group-hover:text-slate-300 transition-colors">
+                 <p className="text-slate-400 dark:text-slate-300 text-base group-hover:text-slate-300 transition-colors">
                    Tap here to log your classes for today.
                  </p>
                </div>
              </div>
-             <ChevronRight className="text-slate-600 group-hover:text-white transition-colors" size={28} aria-hidden="true" />
+             <ChevronRight className="text-slate-600 dark:text-slate-500 group-hover:text-white transition-colors" size={28} aria-hidden="true" />
           </div>
         </Link>
 
@@ -267,23 +267,23 @@ const Dashboard = memo(function Dashboard() {
 
         {/* HELPFUL TIP */}
         {stats.total === 0 && subjectCount === 0 ? (
-          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-3xl p-6">
-            <h3 className="font-bold text-slate-800 mb-2">Get Started</h3>
-            <p className="text-slate-600 text-sm mb-4">Start by adding your subjects and setting up your timetable to begin tracking attendance.</p>
+          <div className="bg-gradient-to-r from-blue-50 to-indigo-50 dark:from-blue-950/50 dark:to-indigo-950/50 border border-blue-200 dark:border-blue-800 rounded-3xl p-6">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-2">Get Started</h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Start by adding your subjects and setting up your timetable to begin tracking attendance.</p>
             <div className="flex gap-3">
-              <Link href="/subjects" className="px-4 py-2 bg-blue-600 text-white font-bold rounded-lg hover:bg-blue-700 transition-colors text-sm">
+              <Link href="/subjects" className="px-4 py-2 bg-blue-600 dark:bg-blue-500 text-white font-bold rounded-lg hover:bg-blue-700 dark:hover:bg-blue-600 transition-colors text-sm">
                 Add Subjects
               </Link>
-              <Link href="/timetable" className="px-4 py-2 bg-slate-200 text-slate-700 font-bold rounded-lg hover:bg-slate-300 transition-colors text-sm">
+              <Link href="/timetable" className="px-4 py-2 bg-slate-200 dark:bg-slate-700 text-slate-700 dark:text-slate-200 font-bold rounded-lg hover:bg-slate-300 dark:hover:bg-slate-600 transition-colors text-sm">
                 Setup Timetable
               </Link>
             </div>
           </div>
         ) : stats.total > 0 && (stats.attended / stats.total) * 100 < 75 ? (
-          <div className="bg-gradient-to-r from-orange-50 to-red-50 border border-orange-200 rounded-3xl p-6">
-            <h3 className="font-bold text-slate-800 mb-2">⚠️ Attendance at Risk</h3>
-            <p className="text-slate-600 text-sm mb-4">Your attendance is below 75%. Check your analytics to see which subjects need attention.</p>
-            <Link href="/analytics" className="inline-block px-4 py-2 bg-orange-600 text-white font-bold rounded-lg hover:bg-orange-700 transition-colors text-sm">
+          <div className="bg-gradient-to-r from-orange-50 to-red-50 dark:from-orange-950/50 dark:to-red-950/50 border border-orange-200 dark:border-orange-800 rounded-3xl p-6">
+            <h3 className="font-bold text-slate-800 dark:text-white mb-2">⚠️ Attendance at Risk</h3>
+            <p className="text-slate-600 dark:text-slate-300 text-sm mb-4">Your attendance is below 75%. Check your analytics to see which subjects need attention.</p>
+            <Link href="/analytics" className="inline-block px-4 py-2 bg-orange-600 dark:bg-orange-500 text-white font-bold rounded-lg hover:bg-orange-700 dark:hover:bg-orange-600 transition-colors text-sm">
               View Analytics
             </Link>
           </div>
@@ -293,12 +293,12 @@ const Dashboard = memo(function Dashboard() {
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6">
           {/* Card 1: Subjects */}
           <Link href="/subjects">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-blue-100 transition-all cursor-pointer group h-full">
-              <div className="h-14 w-14 bg-blue-50 rounded-2xl flex items-center justify-center text-blue-600 mb-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-blue-100 dark:hover:border-blue-700 transition-all cursor-pointer group h-full">
+              <div className="h-14 w-14 bg-blue-50 dark:bg-blue-900/30 rounded-2xl flex items-center justify-center text-blue-600 dark:text-blue-400 mb-5 group-hover:bg-blue-600 group-hover:text-white transition-colors">
                 <BookOpen size={28} />
               </div>
-              <h3 className="font-bold text-slate-800 text-xl mb-2">Subjects</h3>
-              <p className="text-slate-500 leading-relaxed">
+              <h3 className="font-bold text-slate-800 dark:text-white text-xl mb-2">Subjects</h3>
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                 Add your classes and targets. You can manage up to 10 subjects easily.
               </p>
             </div>
@@ -306,12 +306,12 @@ const Dashboard = memo(function Dashboard() {
 
           {/* Card 2: Timetable */}
           <Link href="/timetable">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-purple-100 transition-all cursor-pointer group h-full">
-              <div className="h-14 w-14 bg-purple-50 rounded-2xl flex items-center justify-center text-purple-600 mb-5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-purple-100 dark:hover:border-purple-700 transition-all cursor-pointer group h-full">
+              <div className="h-14 w-14 bg-purple-50 dark:bg-purple-900/30 rounded-2xl flex items-center justify-center text-purple-600 dark:text-purple-400 mb-5 group-hover:bg-purple-600 group-hover:text-white transition-colors">
                 <Calendar size={28} />
               </div>
-              <h3 className="font-bold text-slate-800 text-xl mb-2">Timetable</h3>
-              <p className="text-slate-500 leading-relaxed">
+              <h3 className="font-bold text-slate-800 dark:text-white text-xl mb-2">Timetable</h3>
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                 Set your weekly schedule with breaks, sports, and study hours.
               </p>
             </div>
@@ -319,12 +319,12 @@ const Dashboard = memo(function Dashboard() {
 
           {/* Card 3: Analytics */}
           <Link href="/analytics">
-            <div className="bg-white p-6 rounded-3xl shadow-sm border border-slate-100 hover:shadow-md hover:border-green-100 transition-all cursor-pointer group h-full">
-              <div className="h-14 w-14 bg-green-50 rounded-2xl flex items-center justify-center text-green-600 mb-5 group-hover:bg-green-600 group-hover:text-white transition-colors">
+            <div className="bg-white dark:bg-slate-800 p-6 rounded-3xl shadow-sm border border-slate-100 dark:border-slate-700 hover:shadow-md hover:border-green-100 dark:hover:border-green-700 transition-all cursor-pointer group h-full">
+              <div className="h-14 w-14 bg-green-50 dark:bg-green-900/30 rounded-2xl flex items-center justify-center text-green-600 dark:text-green-400 mb-5 group-hover:bg-green-600 group-hover:text-white transition-colors">
                 <PieChart size={28} />
               </div>
-              <h3 className="font-bold text-slate-800 text-xl mb-2">Analytics</h3>
-              <p className="text-slate-500 leading-relaxed">
+              <h3 className="font-bold text-slate-800 dark:text-white text-xl mb-2">Analytics</h3>
+              <p className="text-slate-500 dark:text-slate-400 leading-relaxed">
                 View detailed stats, track progress, and get actionable insights.
               </p>
             </div>

@@ -69,25 +69,25 @@ export default function UpdatePassword() {
   };
 
   return (
-    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 p-4">
-      <div className="max-w-md w-full bg-white rounded-3xl shadow-2xl p-8 border border-slate-100">
+    <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-slate-50 via-blue-50 to-slate-50 dark:from-slate-950 dark:via-slate-900 dark:to-slate-950 p-4 transition-colors">
+      <div className="max-w-md w-full bg-white dark:bg-slate-800 rounded-3xl shadow-2xl p-8 border border-slate-100 dark:border-slate-700 transition-colors">
         {/* Back Button */}
-        <Link href="/login" className="flex items-center text-slate-400 hover:text-slate-600 mb-8 text-sm font-medium">
+        <Link href="/login" className="flex items-center text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300 mb-8 text-sm font-medium transition-colors">
           <ArrowLeft size={16} className="mr-2" /> Back to Login
         </Link>
 
-        <h1 className="text-3xl font-bold text-slate-900 mb-2">Update Password</h1>
-        <p className="text-slate-500 text-sm mb-6">Enter your new password below.</p>
+        <h1 className="text-3xl font-bold text-slate-900 dark:text-white mb-2">Update Password</h1>
+        <p className="text-slate-500 dark:text-slate-400 text-sm mb-6">Enter your new password below.</p>
 
         <form onSubmit={handleUpdatePassword} className="space-y-4">
           {/* New Password */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">New Password</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">New Password</label>
             <div className="relative">
               <input
                 type={showPassword ? "text" : "password"}
                 required
-                className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-4 py-2.5 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
                 placeholder="••••••••"
                 value={password}
                 onChange={(e) => setPassword(e.target.value)}
@@ -98,9 +98,9 @@ export default function UpdatePassword() {
                 onClick={() => setShowPassword(!showPassword)}
               >
                 {showPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
+                  <EyeOff className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                 ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
+                  <Eye className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                 )}
               </button>
             </div>
@@ -108,12 +108,12 @@ export default function UpdatePassword() {
 
           {/* Confirm Password */}
           <div>
-            <label className="block text-sm font-medium text-slate-700 mb-1">Confirm Password</label>
+            <label className="block text-sm font-medium text-slate-700 dark:text-slate-300 mb-1">Confirm Password</label>
             <div className="relative">
               <input
                 type={showConfirmPassword ? "text" : "password"}
                 required
-                className="w-full px-4 py-2 pr-10 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 focus:outline-none"
+                className="w-full px-4 py-2.5 pr-10 border border-slate-300 dark:border-slate-600 rounded-lg focus:ring-2 focus:ring-blue-500 focus:border-blue-500 focus:outline-none bg-white dark:bg-slate-700 text-slate-900 dark:text-white placeholder:text-slate-400 dark:placeholder:text-slate-500 transition-colors"
                 placeholder="••••••••"
                 value={confirmPassword}
                 onChange={(e) => setConfirmPassword(e.target.value)}
@@ -124,9 +124,9 @@ export default function UpdatePassword() {
                 onClick={() => setShowConfirmPassword(!showConfirmPassword)}
               >
                 {showConfirmPassword ? (
-                  <EyeOff className="h-5 w-5 text-gray-400" />
+                  <EyeOff className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                 ) : (
-                  <Eye className="h-5 w-5 text-gray-400" />
+                  <Eye className="h-5 w-5 text-slate-400 dark:text-slate-500 hover:text-slate-600 dark:hover:text-slate-300" />
                 )}
               </button>
             </div>
@@ -134,7 +134,7 @@ export default function UpdatePassword() {
 
           {/* Error/Success Message Box */}
           {message && (
-            <div className={`p-3 rounded-lg text-sm ${message.type === 'error' ? 'bg-red-50 text-red-600' : 'bg-green-50 text-green-600'}`}>
+            <div className={`p-3 rounded-lg text-sm border ${message.type === 'error' ? 'bg-red-50 dark:bg-red-900/30 text-red-600 dark:text-red-400 border-red-200 dark:border-red-800' : 'bg-green-50 dark:bg-green-900/30 text-green-600 dark:text-green-400 border-green-200 dark:border-green-800'}`}>
               {message.text}
             </div>
           )}
@@ -142,16 +142,16 @@ export default function UpdatePassword() {
           <button
             type="submit"
             disabled={loading}
-            className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 rounded-lg transition-all flex justify-center items-center"
+            className="w-full bg-blue-600 hover:bg-blue-700 dark:bg-blue-500 dark:hover:bg-blue-600 text-white font-semibold py-3 rounded-lg transition-all flex justify-center items-center disabled:opacity-50 disabled:cursor-not-allowed shadow-sm"
           >
             {loading ? <Loader2 className="animate-spin" size={20} /> : 'Update Password'}
           </button>
         </form>
 
         {/* Password Requirements */}
-        <div className="mt-6 p-4 bg-slate-50 rounded-lg">
-          <h3 className="text-sm font-medium text-slate-700 mb-2">Password Requirements:</h3>
-          <ul className="text-xs text-slate-600 space-y-1">
+        <div className="mt-6 p-4 bg-slate-50 dark:bg-slate-700/50 rounded-lg border border-slate-200 dark:border-slate-600">
+          <h3 className="text-sm font-medium text-slate-700 dark:text-slate-300 mb-2">Password Requirements:</h3>
+          <ul className="text-xs text-slate-600 dark:text-slate-400 space-y-1">
             <li>• At least 6 characters long</li>
             <li>• Both passwords must match</li>
           </ul>

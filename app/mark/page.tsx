@@ -266,18 +266,18 @@ export default function MarkAttendancePage() {
   };
 
   return (
-    <div className="min-h-screen bg-slate-50 pb-32">
+    <div className="min-h-screen bg-slate-50 dark:bg-slate-950 pb-32 transition-colors">
       
       {/* HEADER */}
-      <div className="bg-white p-4 sticky top-0 z-10 border-b border-slate-200 shadow-sm">
+      <div className="bg-white dark:bg-slate-900 p-4 sticky top-0 z-10 border-b border-slate-200 dark:border-slate-800 shadow-sm transition-colors">
         <div className="flex flex-col sm:flex-row sm:items-center gap-3 sm:gap-4 mb-3">
           <div className="flex items-center gap-4 flex-1">
-            <Link href="/dashboard" className="p-2 hover:bg-slate-100 rounded-full transition-colors">
-              <ArrowLeft size={20} className="text-slate-600" />
+            <Link href="/dashboard" className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-full transition-colors">
+              <ArrowLeft size={20} className="text-slate-600 dark:text-slate-300" />
             </Link>
             <div className="flex-1 min-w-0">
-              <h1 className="text-lg font-bold text-slate-800">Mark Attendance</h1>
-              <p className="text-xs text-slate-400">Select status & confirm below • Edit past dates anytime</p>
+              <h1 className="text-lg font-bold text-slate-800 dark:text-white">Mark Attendance</h1>
+              <p className="text-xs text-slate-400 dark:text-slate-500">Select status & confirm below • Edit past dates anytime</p>
             </div>
           </div>
 
@@ -287,7 +287,7 @@ export default function MarkAttendancePage() {
             <div className="flex gap-1">
               <button
                 onClick={() => navigateDate('prev')}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-slate-800"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 aria-label="Previous day"
               >
                 ←
@@ -295,14 +295,14 @@ export default function MarkAttendancePage() {
 
               <button
                 onClick={() => navigateDate('today')}
-                className="px-3 py-2 text-xs font-bold bg-blue-50 text-blue-700 rounded-lg hover:bg-blue-100 transition-colors"
+                className="px-3 py-2 text-xs font-bold bg-blue-50 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 rounded-lg hover:bg-blue-100 dark:hover:bg-blue-900/50 transition-colors"
               >
                 Today
               </button>
 
               <button
                 onClick={() => navigateDate('next')}
-                className="p-2 hover:bg-slate-100 rounded-lg transition-colors text-slate-600 hover:text-slate-800"
+                className="p-2 hover:bg-slate-100 dark:hover:bg-slate-800 rounded-lg transition-colors text-slate-600 dark:text-slate-400 hover:text-slate-800 dark:hover:text-slate-200"
                 aria-label="Next day"
               >
                 →
@@ -320,10 +320,10 @@ export default function MarkAttendancePage() {
                  />
                  <div className={clsx("flex items-center gap-1 sm:gap-2 px-2 sm:px-3 py-2 rounded-xl text-xs font-bold border transition-colors",
                    isSameDay(parseISO(date), startOfDay(new Date()))
-                     ? "bg-blue-100 text-blue-700 border-blue-300"
+                     ? "bg-blue-100 dark:bg-blue-900/30 text-blue-700 dark:text-blue-400 border-blue-300 dark:border-blue-700"
                      : isBefore(parseISO(date), startOfDay(new Date()))
-                       ? "bg-orange-50 text-orange-700 border-orange-200"
-                       : "bg-slate-100 text-slate-600 border-slate-200"
+                       ? "bg-orange-50 dark:bg-orange-900/30 text-orange-700 dark:text-orange-400 border-orange-200 dark:border-orange-700"
+                       : "bg-slate-100 dark:bg-slate-800 text-slate-600 dark:text-slate-400 border-slate-200 dark:border-slate-700"
                  )}>
                    <Calendar size={14} />
                    <span className="hidden sm:inline">{format(parseISO(date), 'MMM d, yyyy')}</span>
@@ -339,7 +339,7 @@ export default function MarkAttendancePage() {
         <div className="flex gap-2">
           <button
             onClick={() => setShowAddExtraModal(true)}
-            className="flex items-center gap-2 px-4 py-2 bg-green-600 text-white rounded-xl text-sm font-bold hover:bg-green-700 transition-colors shadow-sm"
+            className="flex items-center gap-2 px-4 py-2 bg-green-600 dark:bg-green-500 text-white rounded-xl text-sm font-bold hover:bg-green-700 dark:hover:bg-green-600 transition-colors shadow-sm"
           >
             <Plus size={16} /> Add Extra Class
           </button>
@@ -350,35 +350,35 @@ export default function MarkAttendancePage() {
       <div className="max-w-xl mx-auto p-4 space-y-4">
         {/* Info Banner for Past Dates */}
         {isBefore(parseISO(date), startOfDay(new Date())) && classes.length > 0 && (
-          <div className="bg-orange-50 border border-orange-200 rounded-2xl p-3 text-sm text-orange-700">
+          <div className="bg-orange-50 dark:bg-orange-900/30 border border-orange-200 dark:border-orange-800 rounded-2xl p-3 text-sm text-orange-700 dark:text-orange-400">
             <p className="font-medium">📝 Editing past attendance</p>
             <p className="text-xs mt-1">You can update attendance records for past dates. Changes will be reflected in analytics.</p>
           </div>
         )}
         
         {loading ? (
-          <div className="flex flex-col items-center justify-center py-20 text-slate-400">
+          <div className="flex flex-col items-center justify-center py-20 text-slate-400 dark:text-slate-500">
              <Loader2 className="animate-spin mb-2" />
              <p>Loading schedule...</p>
           </div>
         ) : classes.length === 0 ? (
           <div className="text-center py-12 flex flex-col items-center">
-            <div className="bg-slate-200 p-4 rounded-full mb-3">
-              <Check size={24} className="text-slate-400" />
+            <div className="bg-slate-200 dark:bg-slate-800 p-4 rounded-full mb-3">
+              <Check size={24} className="text-slate-400 dark:text-slate-500" />
             </div>
-            <p className="text-slate-500 font-bold">No classes scheduled.</p>
-            <p className="text-xs text-slate-400 mt-1">Enjoy your free time!</p>
+            <p className="text-slate-500 dark:text-slate-400 font-bold">No classes scheduled.</p>
+            <p className="text-xs text-slate-400 dark:text-slate-500 mt-1">Enjoy your free time!</p>
           </div>
         ) : (
           classes.map((cls, idx) => (
-            <div key={idx} className="bg-white rounded-2xl p-4 shadow-sm border border-slate-100">
+            <div key={idx} className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-sm border border-slate-100 dark:border-slate-700 transition-colors">
               
               {/* Class Info */}
               <div className="flex items-center gap-3 mb-4">
                 <div className="w-1.5 h-10 rounded-full" style={{ backgroundColor: cls.color }} />
                 <div>
-                  <h3 className="font-bold text-slate-800">{cls.subject_name}</h3>
-                  <div className="text-xs text-slate-400 font-medium">
+                  <h3 className="font-bold text-slate-800 dark:text-white">{cls.subject_name}</h3>
+                  <div className="text-xs text-slate-400 dark:text-slate-500 font-medium">
                     {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
                   </div>
                 </div>
@@ -391,8 +391,8 @@ export default function MarkAttendancePage() {
                   className={clsx(
                     "py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2",
                     cls.status === 'PRESENT'
-                      ? "bg-green-50 border-green-500 text-green-700 font-bold shadow-sm"
-                      : "bg-white border-slate-100 text-slate-400 hover:border-green-200"
+                      ? "bg-green-50 dark:bg-green-900/30 border-green-500 dark:border-green-600 text-green-700 dark:text-green-400 font-bold shadow-sm"
+                      : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-green-200 dark:hover:border-green-700"
                   )}
                   aria-label={`Mark ${cls.subject_name} as present`}
                   aria-pressed={cls.status === 'PRESENT'}
@@ -405,8 +405,8 @@ export default function MarkAttendancePage() {
                   className={clsx(
                     "py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2",
                     cls.status === 'ABSENT'
-                      ? "bg-red-50 border-red-500 text-red-700 font-bold shadow-sm"
-                      : "bg-white border-slate-100 text-slate-400 hover:border-red-200"
+                      ? "bg-red-50 dark:bg-red-900/30 border-red-500 dark:border-red-600 text-red-700 dark:text-red-400 font-bold shadow-sm"
+                      : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-red-200 dark:hover:border-red-700"
                   )}
                   aria-label={`Mark ${cls.subject_name} as absent`}
                   aria-pressed={cls.status === 'ABSENT'}
@@ -419,8 +419,8 @@ export default function MarkAttendancePage() {
                   className={clsx(
                     "py-3 rounded-xl flex flex-col items-center justify-center gap-1 transition-all border-2",
                     cls.status === 'CANCELLED'
-                      ? "bg-slate-100 border-slate-500 text-slate-600 font-bold shadow-sm"
-                      : "bg-white border-slate-100 text-slate-400 hover:border-slate-300"
+                      ? "bg-slate-100 dark:bg-slate-700 border-slate-500 dark:border-slate-600 text-slate-600 dark:text-slate-300 font-bold shadow-sm"
+                      : "bg-white dark:bg-slate-700 border-slate-100 dark:border-slate-600 text-slate-400 dark:text-slate-500 hover:border-slate-300 dark:hover:border-slate-500"
                   )}
                   aria-label={`Mark ${cls.subject_name} as cancelled`}
                   aria-pressed={cls.status === 'CANCELLED'}
@@ -436,18 +436,18 @@ export default function MarkAttendancePage() {
 
       {/* ADD EXTRA CLASS MODAL */}
       {showAddExtraModal && (
-        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-          <div className="bg-white rounded-2xl p-6 w-full max-w-sm mx-auto">
-            <h3 className="text-lg font-bold text-slate-800 mb-4">Add Extra Class</h3>
+        <div className="fixed inset-0 bg-black/50 dark:bg-black/70 flex items-center justify-center z-50 p-4">
+          <div className="bg-white dark:bg-slate-800 rounded-2xl p-6 w-full max-w-sm mx-auto border border-slate-100 dark:border-slate-700">
+            <h3 className="text-lg font-bold text-slate-800 dark:text-white mb-4">Add Extra Class</h3>
 
             <div className="space-y-4">
               {/* Subject Selection */}
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Subject</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Subject</label>
                 <select
                   value={selectedSubjectId}
                   onChange={(e) => setSelectedSubjectId(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 >
                   <option value="">Select a subject</option>
                   {subjects.map((subject) => (
@@ -460,23 +460,23 @@ export default function MarkAttendancePage() {
 
               {/* Start Time */}
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">Start Time</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">Start Time</label>
                 <input
                   type="time"
                   value={extraStartTime}
                   onChange={(e) => setExtraStartTime(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               </div>
 
               {/* End Time */}
               <div>
-                <label className="block text-sm font-medium text-slate-600 mb-2">End Time</label>
+                <label className="block text-sm font-medium text-slate-600 dark:text-slate-300 mb-2">End Time</label>
                 <input
                   type="time"
                   value={extraEndTime}
                   onChange={(e) => setExtraEndTime(e.target.value)}
-                  className="w-full p-3 border border-slate-200 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent"
+                  className="w-full p-3 border border-slate-200 dark:border-slate-600 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500 focus:border-transparent bg-white dark:bg-slate-700 text-slate-900 dark:text-white"
                 />
               </div>
             </div>
@@ -484,13 +484,13 @@ export default function MarkAttendancePage() {
             <div className="flex gap-3 mt-6">
               <button
                 onClick={() => setShowAddExtraModal(false)}
-                className="flex-1 py-3 px-4 bg-slate-100 text-slate-600 rounded-xl font-bold hover:bg-slate-200 transition-colors"
+                className="flex-1 py-3 px-4 bg-slate-100 dark:bg-slate-700 text-slate-600 dark:text-slate-300 rounded-xl font-bold hover:bg-slate-200 dark:hover:bg-slate-600 transition-colors"
               >
                 Cancel
               </button>
               <button
                 onClick={addExtraClass}
-                className="flex-1 py-3 px-4 bg-green-600 text-white rounded-xl font-bold hover:bg-green-700 transition-colors"
+                className="flex-1 py-3 px-4 bg-green-600 dark:bg-green-500 text-white rounded-xl font-bold hover:bg-green-700 dark:hover:bg-green-600 transition-colors"
               >
                 Add Class
               </button>
@@ -504,19 +504,19 @@ export default function MarkAttendancePage() {
         <div className="fixed bottom-6 left-4 right-4 flex justify-center z-20">
           <div className="max-w-xl w-full space-y-3">
             {/* Summary Box */}
-            <div className="bg-white rounded-2xl p-4 shadow-lg border border-slate-200">
+            <div className="bg-white dark:bg-slate-800 rounded-2xl p-4 shadow-lg border border-slate-200 dark:border-slate-700 transition-colors">
               <div className="grid grid-cols-3 gap-4 text-center text-sm">
                 <div>
-                  <div className="text-lg font-bold text-green-600">{classes.filter(c => c.status === 'PRESENT').length}</div>
-                  <div className="text-xs text-slate-400">Present</div>
+                  <div className="text-lg font-bold text-green-600 dark:text-green-500">{classes.filter(c => c.status === 'PRESENT').length}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">Present</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-red-600">{classes.filter(c => c.status === 'ABSENT').length}</div>
-                  <div className="text-xs text-slate-400">Absent</div>
+                  <div className="text-lg font-bold text-red-600 dark:text-red-500">{classes.filter(c => c.status === 'ABSENT').length}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">Absent</div>
                 </div>
                 <div>
-                  <div className="text-lg font-bold text-slate-600">{classes.filter(c => c.status === 'CANCELLED').length}</div>
-                  <div className="text-xs text-slate-400">Cancelled</div>
+                  <div className="text-lg font-bold text-slate-600 dark:text-slate-400">{classes.filter(c => c.status === 'CANCELLED').length}</div>
+                  <div className="text-xs text-slate-400 dark:text-slate-500">Cancelled</div>
                 </div>
               </div>
             </div>
@@ -525,7 +525,7 @@ export default function MarkAttendancePage() {
             <button
               onClick={handleSave}
               disabled={saving}
-              className="w-full bg-slate-900 text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
+              className="w-full bg-slate-900 dark:bg-blue-600 text-white font-bold py-4 rounded-2xl shadow-xl flex items-center justify-center gap-2 hover:bg-slate-800 dark:hover:bg-blue-700 active:scale-95 transition-all disabled:opacity-70 disabled:cursor-not-allowed"
             >
               {saving ? (
                  <>Saving <Loader2 className="animate-spin" size={18} /></>
