@@ -173,6 +173,14 @@ export default function MarkAttendancePage() {
     setClasses(updated);
   };
 
+  const handleMarkAll = (status: ClassItem['status']) => {
+    const updated = classes.map(cls => ({
+      ...cls,
+      status: status
+    }));
+    setClasses(updated);
+  };
+
   const handleSave = async () => {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
@@ -388,6 +396,64 @@ export default function MarkAttendancePage() {
             <p className="text-sm font-semibold text-black/80 mt-1">
               Changes will be reflected in your analytics.
             </p>
+          </div>
+        )}
+
+        {/* Bulk Action Buttons */}
+        {!loading && classes.length > 0 && (
+          <div className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+            <p className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-3">
+              ⚡ Quick Actions
+            </p>
+            <div className="grid grid-cols-3 gap-3">
+              <button
+                onClick={() => handleMarkAll('PRESENT')}
+                className={clsx(
+                  "py-3 flex flex-col items-center justify-center gap-1 transition-all duration-150",
+                  "border-[3px] border-black bg-green-500 text-white font-black text-sm",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]",
+                  "dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
+              >
+                <Check size={20} />
+                <span>ALL PRESENT</span>
+              </button>
+
+              <button
+                onClick={() => handleMarkAll('ABSENT')}
+                className={clsx(
+                  "py-3 flex flex-col items-center justify-center gap-1 transition-all duration-150",
+                  "border-[3px] border-black bg-red-500 text-white font-black text-sm",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]",
+                  "dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
+              >
+                <X size={20} />
+                <span>ALL ABSENT</span>
+              </button>
+
+              <button
+                onClick={() => handleMarkAll('CANCELLED')}
+                className={clsx(
+                  "py-3 flex flex-col items-center justify-center gap-1 transition-all duration-150",
+                  "border-[3px] border-black bg-gray-600 text-white font-black text-sm",
+                  "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                  "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                  "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                  "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]",
+                  "dark:hover:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+                )}
+              >
+                <Ban size={20} />
+                <span>ALL CANCELLED</span>
+              </button>
+            </div>
           </div>
         )}
         
