@@ -199,7 +199,8 @@ export default function MarkAttendancePage() {
         if (error) throw error;
       }
       
-      router.push('/dashboard');
+      // Add cache-busting timestamp to force data refresh
+      router.push('/dashboard?refresh=' + Date.now());
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';

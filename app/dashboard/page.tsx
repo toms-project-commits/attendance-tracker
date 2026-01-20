@@ -141,7 +141,7 @@ BrutalCard.displayName = 'BrutalCard';
 
 const Dashboard = memo(function Dashboard() {
   const router = useRouter();
-  const { user, profile, subjects, timetable, holidays, logs, loading: dataLoading } = useStudentData();
+  const { user, profile, subjects, timetable, holidays, logs, loading: dataLoading, refresh } = useStudentData();
 
   const checkAuth = useCallback(() => {
     if (!dataLoading && !user) {
@@ -152,6 +152,18 @@ const Dashboard = memo(function Dashboard() {
   useEffect(() => {
     checkAuth();
   }, [checkAuth]);
+
+  // Force refresh when coming from mark page
+  useEffect(() => {
+    if (typeof window !== 'undefined') {
+      const searchParams = new URLSearchParams(window.location.search);
+      if (searchParams.has('refresh')) {
+        refresh(true); // Force refresh to bypass cache
+        // Clean up URL
+        window.history.replaceState({}, '', window.location.pathname);
+      }
+    }
+  }, [refresh]);
 
   const userName = useMemo(() => {
     if (profile?.username) {

@@ -48,7 +48,7 @@ type StudentDataResult = {
   logs: AttendanceLog[];
   loading: boolean;
   error: string | null;
-  refresh: () => Promise<void>;
+  refresh: (forceRefresh?: boolean) => Promise<void>;
 };
 
 export default function useStudentData(): StudentDataResult {
@@ -245,6 +245,6 @@ export default function useStudentData(): StudentDataResult {
     logs,
     loading,
     error,
-    refresh: fetchData
+    refresh: fetchData // fetchData already accepts forceRefresh parameter
   };
 }
