@@ -181,7 +181,7 @@ export default function SetPasswordPage() {
               </div>
             </div>
             <p className="text-lg font-bold text-black dark:text-white mt-4">
-              One last step! 🔐
+              One last step! 
             </p>
             <p className="text-base font-semibold text-gray-600 dark:text-gray-400 mt-1">
               Create a password for your account
@@ -305,7 +305,7 @@ export default function SetPasswordPage() {
               {loading ? (
                 <Loader2 className="animate-spin mx-auto" size={24} />
               ) : (
-                '🔐 Set Password & Continue'
+                ' Set Password & Continue'
               )}
             </button>
           </form>
@@ -321,7 +321,7 @@ export default function SetPasswordPage() {
         {/* Bottom tagline */}
         <div className="mt-6 text-center">
           <p className="text-sm font-bold text-gray-600 dark:text-gray-400">
-            🔒 Your data is secure with us
+             Your data is secure with us
           </p>
         </div>
       </div>

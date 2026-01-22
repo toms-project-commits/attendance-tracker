@@ -286,7 +286,7 @@ const Dashboard = memo(function Dashboard() {
       {/* TOP NAVIGATION */}
       <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-4 flex justify-between items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
         <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
-          <span className="text-2xl">🎓</span> BunkSafe
+          <span className="text-2xl"></span> BunkSafe
         </h1>
         <BrutalButton onClick={handleLogout} variant="danger" className="text-sm md:text-base">
           <LogOut size={16} className="mr-2" /> Sign Out
@@ -300,7 +300,7 @@ const Dashboard = memo(function Dashboard() {
           <div className="flex items-center justify-between gap-6 flex-col lg:flex-row">
             <div className="flex-1 min-w-0">
               <h2 className="text-3xl md:text-4xl font-black mb-3 break-words">
-                Welcome back, {userName}! 👋
+                Welcome back, {userName}! 
               </h2>
               <p className="text-lg md:text-xl font-bold opacity-90">
                 Track every class. Own your attendance. No excuses.
