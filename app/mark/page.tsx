@@ -120,7 +120,7 @@ export default function MarkAttendancePage() {
 
       const { data: logs, error: logsError } = await supabase
         .from('attendance_logs')
-        .select('subject_id, status')
+        .select('subject_id, status, timetable_slot_id, start_time, end_time')
         .eq('user_id', user.id)
         .eq('date', date);
 
@@ -128,9 +128,13 @@ export default function MarkAttendancePage() {
         console.error('Error fetching logs:', logsError);
       }
 
+      const merged: ClassItem[] = [];
+      
+      // Add timetable classes
       if (timetable) {
-        const merged: ClassItem[] = timetable.map((slot) => {
-          const existingLog = logs?.find(l => l.subject_id === slot.subject_id);
+        timetable.forEach((slot) => {
+          // Match log by timetable_slot_id for accuracy (handles multiple same subjects)
+          const existingLog = logs?.find(l => l.timetable_slot_id === slot.id);
 
           const startTime = slot.start_time && typeof slot.start_time === 'string'
             ? slot.start_time.length >= 5 ? slot.start_time.slice(0, 5) : slot.start_time
@@ -141,7 +145,7 @@ export default function MarkAttendancePage() {
 
           const subjectData = Array.isArray(slot.subjects) ? slot.subjects[0] : slot.subjects;
 
-          return {
+          merged.push({
             timetable_id: slot.id,
             subject_id: slot.subject_id,
             subject_name: subjectData?.name || 'Unknown Subject',
@@ -149,12 +153,43 @@ export default function MarkAttendancePage() {
             start_time: startTime,
             end_time: endTime,
             status: (existingLog?.status as ClassItem['status']) || null
-          };
+          });
         });
-        setClasses(merged);
-      } else {
-        setClasses([]);
       }
+
+      // Add extra classes (those without timetable_slot_id)
+      const extraLogs = logs?.filter(log => !log.timetable_slot_id && log.start_time) || [];
+      for (const extraLog of extraLogs) {
+        const subject = subjects.find(s => s.id === extraLog.subject_id);
+        if (subject) {
+          const startTime = extraLog.start_time && typeof extraLog.start_time === 'string'
+            ? extraLog.start_time.length >= 5 ? extraLog.start_time.slice(0, 5) : extraLog.start_time
+            : '09:00';
+          const endTime = extraLog.end_time && typeof extraLog.end_time === 'string'
+            ? extraLog.end_time.length >= 5 ? extraLog.end_time.slice(0, 5) : extraLog.end_time
+            : '10:00';
+
+          merged.push({
+            id: `extra_${extraLog.subject_id}_${extraLog.start_time}`,
+            subject_id: extraLog.subject_id,
+            subject_name: subject.name,
+            color: subject.color_hex,
+            start_time: startTime,
+            end_time: endTime,
+            status: (extraLog?.status as ClassItem['status']) || null,
+            is_extra: true
+          });
+        }
+      }
+
+      // Sort by start time
+      merged.sort((a, b) => {
+        const timeA = a.start_time || '00:00';
+        const timeB = b.start_time || '00:00';
+        return timeA.localeCompare(timeB);
+      });
+
+      setClasses(merged);
     } catch (error) {
       console.error('Unexpected error fetching schedule:', error);
       setClasses([]);
@@ -187,6 +222,7 @@ export default function MarkAttendancePage() {
     if (!user) return;
 
     try {
+      // Delete existing attendance for this date
       await supabase
         .from('attendance_logs')
         .delete()
@@ -199,12 +235,20 @@ export default function MarkAttendancePage() {
           user_id: user.id,
           subject_id: c.subject_id,
           date: date,
-          status: c.status
+          status: c.status,
+          // For timetable classes, store timetable_slot_id
+          timetable_slot_id: c.is_extra ? null : c.timetable_id,
+          // For extra classes, store times
+          start_time: c.is_extra ? c.start_time : null,
+          end_time: c.is_extra ? c.end_time : null
         }));
 
       if (logsToInsert.length > 0) {
         const { error } = await supabase.from('attendance_logs').insert(logsToInsert);
-        if (error) throw error;
+        if (error) {
+          console.error('Save error:', error);
+          throw error;
+        }
       }
       
       // Add cache-busting timestamp to force data refresh
