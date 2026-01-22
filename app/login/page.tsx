@@ -14,6 +14,7 @@ export default function LoginPage() {
   const [loading, setLoading] = useState(false);
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
+  const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
   const [message, setMessage] = useState<{ text: string, type: 'error' | 'success' } | null>(null);
 
   const validatePassword = (pwd: string): { valid: boolean; message: string } => {
@@ -71,8 +72,24 @@ export default function LoginPage() {
         
         router.push('/setup');
       } else {
+        // Sign in with password
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
+        
+        // If user doesn't want to be remembered, use sessionStorage instead of localStorage
+        if (!rememberMe && typeof window !== 'undefined') {
+          // Get the current session from localStorage
+          const supabaseKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
+          
+          // Move session data to sessionStorage
+          supabaseKeys.forEach(key => {
+            const value = localStorage.getItem(key);
+            if (value) {
+              sessionStorage.setItem(key, value);
+              localStorage.removeItem(key);
+            }
+          });
+        }
         
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
@@ -236,9 +253,38 @@ export default function LoginPage() {
               </div>
             )}
 
-            {/* Forgot Password Link */}
+            {/* Remember Me & Forgot Password */}
             {!isSignUp && (
-              <div className="text-right">
+              <div className="flex items-center justify-between">
+                {/* Remember Me Checkbox */}
+                <label className="flex items-center gap-2 cursor-pointer group">
+                  <div className="relative">
+                    <input
+                      type="checkbox"
+                      checked={rememberMe}
+                      onChange={(e) => setRememberMe(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={clsx(
+                        "w-5 h-5 border-[3px] border-black transition-all duration-150",
+                        "dark:border-white",
+                        rememberMe ? "bg-blue-500" : "bg-white dark:bg-slate-700"
+                      )}
+                    >
+                      {rememberMe && (
+                        <svg className="w-full h-full text-white" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-black dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors">
+                    Remember me
+                  </span>
+                </label>
+
+                {/* Forgot Password */}
                 <Link 
                   href="/forgot-password" 
                   className="text-sm font-bold text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"

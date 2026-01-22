@@ -9,4 +9,12 @@ if (!supabaseUrl || !supabaseKey) {
   );
 }
 
-export const supabase = createClient(supabaseUrl, supabaseKey);
+// Create Supabase client with persistent session support
+export const supabase = createClient(supabaseUrl, supabaseKey, {
+  auth: {
+    persistSession: true, // Enable session persistence by default
+    autoRefreshToken: true, // Auto refresh tokens when they expire
+    detectSessionInUrl: true, // Support OAuth redirects
+    storage: typeof window !== 'undefined' ? window.localStorage : undefined, // Use localStorage for persistence
+  },
+});
