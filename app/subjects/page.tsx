@@ -152,8 +152,14 @@ export default function SubjectsPage() {
   };
 
   // 5. DELETE SUBJECT
-  const handleDelete = async (id: string) => {
-    if (!confirm("Are you sure? This will delete all attendance data for this subject.")) return;
+  const handleDelete = async (id: string, subjectName: string) => {
+    const confirmMessage = `⚠️ Delete "${subjectName}"?\n\n` +
+      `This will permanently delete:\n` +
+      `• All attendance records for this subject\n` +
+      `• All timetable entries for this subject\n\n` +
+      `This action CANNOT be undone!`;
+    
+    if (!confirm(confirmMessage)) return;
 
     try {
       const { error } = await supabase
@@ -426,7 +432,7 @@ export default function SubjectsPage() {
                         <Edit2 size={18} className="text-current" />
                       </button>
                       <button
-                        onClick={() => handleDelete(sub.id)}
+                        onClick={() => handleDelete(sub.id, sub.name)}
                         className={clsx(
                           "p-3 border-[2px] border-black bg-red-100",
                           "hover:bg-red-500 hover:text-white",
