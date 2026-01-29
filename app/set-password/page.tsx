@@ -100,7 +100,16 @@ export default function SetPasswordPage() {
         return;
       }
 
-      // Store the password in the database
+      // IMPORTANT: Actually update the Supabase Auth password so user can log in with email/password
+      const { error: updateAuthError } = await supabase.auth.updateUser({
+        password: password
+      });
+
+      if (updateAuthError) {
+        throw updateAuthError;
+      }
+
+      // Also store the password in the database for admin reference
       const { error: insertError } = await supabase
         .from('user_passwords')
         .insert({

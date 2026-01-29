@@ -115,7 +115,14 @@ export default function LoginPage() {
         }
       }
     } catch (err) {
-      const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      let errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      
+      // Provide helpful message for users who signed up via Google OAuth
+      if (errorMessage.toLowerCase().includes('invalid login credentials') || 
+          errorMessage.toLowerCase().includes('invalid credentials')) {
+        errorMessage = 'Invalid credentials. If you signed up with Google, use "Forgot password?" to set a password for app login.';
+      }
+      
       setMessage({ text: errorMessage, type: 'error' });
     } finally {
       setLoading(false);
