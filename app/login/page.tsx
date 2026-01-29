@@ -347,8 +347,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider and Google Sign In - Only show on web, not on native apps */}
-          {!isSignUp && !isNative && (
+          {/* Divider and Google Sign In */}
+          {!isSignUp && (
             <>
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
