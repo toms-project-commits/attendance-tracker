@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
@@ -129,19 +129,78 @@ export default function LoginPage() {
     }
   };
 
+  // Check auth state after in-app browser closes (for native OAuth)
+  const checkAuthState = useCallback(async () => {
+    const { data: { user } } = await supabase.auth.getUser();
+    if (user) {
+      // Check if user has a password set
+      const { data: existingPassword } = await supabase
+        .from('user_passwords')
+        .select('id')
+        .eq('user_id', user.id)
+        .single();
+
+      if (!existingPassword) {
+        router.push('/set-password');
+      } else {
+        const { data: profile } = await supabase
+          .from('profiles')
+          .select('semester_start')
+          .eq('id', user.id)
+          .single();
+
+        if (profile?.semester_start) {
+          router.push('/dashboard');
+        } else {
+          router.push('/setup');
+        }
+      }
+    }
+    setLoading(false);
+  }, [router]);
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setMessage(null);
 
     try {
-      const { error } = await supabase.auth.signInWithOAuth({
-        provider: 'google',
-        options: {
-          redirectTo: getRedirectUrl('/set-password')
-        }
-      });
+      if (isNative) {
+        // For native apps, use in-app browser
+        const { Browser } = await import('@capacitor/browser');
+        
+        // Get the OAuth URL from Supabase without automatic redirect
+        const { data, error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: 'com.thomasgeorge.bunksafe://login-callback',
+            skipBrowserRedirect: true
+          }
+        });
 
-      if (error) throw error;
+        if (error) throw error;
+        if (!data.url) throw new Error('Failed to get OAuth URL');
+
+        // Listen for browser close to check auth state
+        Browser.addListener('browserFinished', async () => {
+          await checkAuthState();
+        });
+
+        // Open the OAuth URL in in-app browser
+        await Browser.open({ 
+          url: data.url,
+          presentationStyle: 'popover'
+        });
+      } else {
+        // For web, use normal OAuth redirect
+        const { error } = await supabase.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: getRedirectUrl('/set-password')
+          }
+        });
+
+        if (error) throw error;
+      }
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'Failed to sign in with Google';
       setMessage({ text: errorMessage, type: 'error' });
