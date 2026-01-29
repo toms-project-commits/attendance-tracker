@@ -159,16 +159,70 @@ export default function LoginPage() {
     setLoading(false);
   }, [router]);
 
+  // Set up deep link listener for native OAuth callback
+  useEffect(() => {
+    if (!isNative) return;
+
+    let cleanup: (() => void) | undefined;
+
+    const setupDeepLinkListener = async () => {
+      const { App } = await import('@capacitor/app');
+      
+      // Listen for app URL open events (deep links)
+      const listener = await App.addListener('appUrlOpen', async (event) => {
+        const url = event.url;
+        
+        // Check if this is our OAuth callback
+        if (url.startsWith('com.thomasgeorge.bunksafe://login-callback')) {
+          setLoading(true);
+          
+          try {
+            // Extract tokens from the URL fragment
+            const hashParams = new URLSearchParams(url.split('#')[1] || '');
+            const accessToken = hashParams.get('access_token');
+            const refreshToken = hashParams.get('refresh_token');
+            
+            if (accessToken && refreshToken) {
+              // Set the session in Supabase
+              const { error } = await supabase.auth.setSession({
+                access_token: accessToken,
+                refresh_token: refreshToken
+              });
+              
+              if (error) throw error;
+              
+              // Check auth state and redirect
+              await checkAuthState();
+            } else {
+              throw new Error('No tokens found in callback URL');
+            }
+          } catch (err) {
+            const errorMessage = err instanceof Error ? err.message : 'OAuth callback failed';
+            setMessage({ text: errorMessage, type: 'error' });
+            setLoading(false);
+          }
+        }
+      });
+
+      cleanup = () => {
+        listener.remove();
+      };
+    };
+
+    setupDeepLinkListener();
+
+    return () => {
+      if (cleanup) cleanup();
+    };
+  }, [isNative, checkAuthState]);
+
   const handleGoogleSignIn = async () => {
     setLoading(true);
     setMessage(null);
 
     try {
       if (isNative) {
-        // For native apps, use in-app browser
-        const { Browser } = await import('@capacitor/browser');
-        
-        // Get the OAuth URL from Supabase without automatic redirect
+        // For native apps, get OAuth URL and open in external browser
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -180,16 +234,11 @@ export default function LoginPage() {
         if (error) throw error;
         if (!data.url) throw new Error('Failed to get OAuth URL');
 
-        // Listen for browser close to check auth state
-        Browser.addListener('browserFinished', async () => {
-          await checkAuthState();
-        });
-
-        // Open the OAuth URL in in-app browser
-        await Browser.open({ 
-          url: data.url,
-          presentationStyle: 'popover'
-        });
+        // Open the OAuth URL in system browser
+        window.open(data.url, '_system');
+        
+        // Keep loading indicator until deep link callback
+        setMessage({ text: 'Complete sign-in in your browser, then return to the app', type: 'success' });
       } else {
         // For web, use normal OAuth redirect
         const { error } = await supabase.auth.signInWithOAuth({
