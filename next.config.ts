@@ -1,12 +1,16 @@
 import type { NextConfig } from "next";
 
 const nextConfig: NextConfig = {
-  /* config options here */
-  // Add any Vercel-specific configurations here if needed
-  // For example:
-  // images: {
-  //   domains: ['igmzqcydjmmtuavqeeak.supabase.co'],
-  // },
+  // Enable static export for Capacitor compatibility
+  output: "export",
+  
+  // Disable image optimization for static export
+  images: {
+    unoptimized: true,
+  },
+  
+  // Add trailing slashes for static file compatibility
+  trailingSlash: true,
 };
 
 export default nextConfig;

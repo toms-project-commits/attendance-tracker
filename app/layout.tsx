@@ -1,12 +1,5 @@
 import type { Metadata, Viewport } from "next";
-import { Space_Grotesk } from "next/font/google";
 import "./globals.css";
-
-const spaceGrotesk = Space_Grotesk({
-  variable: "--font-space-grotesk",
-  subsets: ["latin"],
-  weight: ["400", "500", "600", "700"],
-});
 
 export const metadata: Metadata = {
   title: "BunkSafe",
@@ -18,6 +11,7 @@ export const viewport: Viewport = {
   initialScale: 1,
   maximumScale: 5,
   userScalable: true,
+  viewportFit: 'cover', // Enable safe-area-inset support for notched devices
 };
 
 export default function RootLayout({
@@ -26,11 +20,20 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en" className={spaceGrotesk.variable}>
+    <html lang="en">
+      <head>
+        {/* Load Space Grotesk font via Google Fonts CDN for static export compatibility */}
+        <link rel="preconnect" href="https://fonts.googleapis.com" />
+        <link rel="preconnect" href="https://fonts.gstatic.com" crossOrigin="anonymous" />
+        <link
+          href="https://fonts.googleapis.com/css2?family=Space+Grotesk:wght@400;500;600;700&display=swap"
+          rel="stylesheet"
+        />
+      </head>
       <body 
-        className="antialiased min-h-screen"
+        className="antialiased min-h-screen safe-area-padding"
         style={{ 
-          fontFamily: 'var(--font-space-grotesk), -apple-system, BlinkMacSystemFont, sans-serif',
+          fontFamily: "'Space Grotesk', -apple-system, BlinkMacSystemFont, sans-serif",
           background: 'var(--background)',
           color: 'var(--foreground)'
         }}

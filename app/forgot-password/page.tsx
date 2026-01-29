@@ -1,23 +1,30 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { Loader2, ArrowLeft, Mail } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
+import { getRedirectUrl } from '@/lib/config';
+import { isNativePlatform } from '@/lib/capacitor';
 
 export default function ForgotPassword() {
   const [email, setEmail] = useState('');
   const [loading, setLoading] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'success' | 'error' } | null>(null);
+  const [isNative, setIsNative] = useState(false);
+
+  // Check if running on native platform (Capacitor)
+  useEffect(() => {
+    setIsNative(isNativePlatform());
+  }, []);
 
   const handleReset = async (e: React.FormEvent) => {
     e.preventDefault();
     setLoading(true);
     setMessage(null);
 
-    const origin = typeof window !== 'undefined' ? window.location.origin : '';
     const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${origin}/update-password`,
+      redirectTo: getRedirectUrl('/update-password'),
     });
 
     if (error) {
@@ -118,6 +125,15 @@ export default function ForgotPassword() {
               )}
             </button>
           </form>
+
+          {/* Note for native app users */}
+          {isNative && (
+            <div className="mt-6 border-[3px] border-black bg-yellow-100 p-4 dark:border-white dark:bg-yellow-900/30">
+              <p className="text-xs font-bold text-gray-700 dark:text-gray-300">
+                📱 <strong>App users:</strong> The reset link will open in your browser. After resetting your password, return to this app to log in.
+              </p>
+            </div>
+          )}
         </div>
       </div>
     </div>

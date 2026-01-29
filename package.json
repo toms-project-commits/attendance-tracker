@@ -1,31 +1,40 @@
 {
   "name": "attendance-tracker",
-  "version": "0.1.0",
+  "version": "0.2.0",
   "private": true,
   "scripts": {
     "dev": "next dev",
     "build": "next build",
     "start": "next start",
-    "lint": "eslint"
+    "lint": "eslint",
+    "build:mobile": "next build && npx cap sync",
+    "cap:sync": "npx cap sync",
+    "cap:open:android": "npx cap open android",
+    "cap:run:android": "npx cap run android",
+    "cap:doctor": "npx cap doctor"
   },
   "dependencies": {
-    "@supabase/supabase-js": "^2.90.1",
+    "@capacitor/android": "^8.0.2",
+    "@capacitor/cli": "^8.0.2",
+    "@capacitor/core": "^8.0.2",
+    "@supabase/supabase-js": "^2.93.2",
     "clsx": "^2.1.1",
     "date-fns": "^4.1.0",
-    "lucide-react": "^0.562.0",
-    "next": "16.1.2",
-    "react": "19.2.3",
-    "react-dom": "19.2.3",
+    "lucide-react": "^0.563.0",
+    "next": "^16.1.6",
+    "react": "^19.2.4",
+    "react-dom": "^19.2.4",
     "tailwind-merge": "^3.4.0"
   },
   "devDependencies": {
+    "@capacitor/assets": "^3.0.5",
     "@tailwindcss/postcss": "^4",
-    "@types/node": "^20",
-    "@types/react": "^19",
+    "@types/node": "^22",
+    "@types/react": "^19.2.10",
     "@types/react-dom": "^19",
     "autoprefixer": "^10.4.23",
     "eslint": "^9",
-    "eslint-config-next": "16.1.2",
+    "eslint-config-next": "^16.1.6",
     "tailwindcss": "^4.1.18",
     "typescript": "^5"
   }

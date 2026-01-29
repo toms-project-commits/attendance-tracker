@@ -123,6 +123,25 @@ button svg {
   }
 }
 
+/* Safe area padding utility for native platforms (Capacitor) */
+/* This only activates on devices with notches/safe areas */
+.safe-area-padding {
+  padding-top: env(safe-area-inset-top, 0px);
+  padding-bottom: env(safe-area-inset-bottom, 0px);
+  padding-left: env(safe-area-inset-left, 0px);
+  padding-right: env(safe-area-inset-right, 0px);
+}
+
+/* Native platform specific styles - applied via Capacitor.isNativePlatform() detection */
+/* These styles ensure proper spacing on notched devices */
+.native-safe-top {
+  padding-top: max(1rem, env(safe-area-inset-top, 1rem));
+}
+
+.native-safe-bottom {
+  padding-bottom: max(1rem, env(safe-area-inset-bottom, 1rem));
+}
+
 /* Custom scrollbar styles */
 .no-scrollbar::-webkit-scrollbar {
   display: none;

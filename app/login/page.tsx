@@ -1,10 +1,12 @@
 'use client';
-import { useState } from 'react';
+import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
+import { getRedirectUrl } from '@/lib/config';
+import { isNativePlatform } from '@/lib/capacitor';
 
 export default function LoginPage() {
   const router = useRouter();
@@ -16,6 +18,12 @@ export default function LoginPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
   const [message, setMessage] = useState<{ text: string, type: 'error' | 'success' } | null>(null);
+  const [isNative, setIsNative] = useState(false);
+
+  // Check if running on native platform (Capacitor)
+  useEffect(() => {
+    setIsNative(isNativePlatform());
+  }, []);
 
   const validatePassword = (pwd: string): { valid: boolean; message: string } => {
     if (pwd.length < 8) {
@@ -122,7 +130,7 @@ export default function LoginPage() {
       const { error } = await supabase.auth.signInWithOAuth({
         provider: 'google',
         options: {
-          redirectTo: `${window.location.origin}/set-password`
+          redirectTo: getRedirectUrl('/set-password')
         }
       });
 
@@ -332,8 +340,8 @@ export default function LoginPage() {
             </button>
           </form>
 
-          {/* Divider */}
-          {!isSignUp && (
+          {/* Divider and Google Sign In - Only show on web, not on native apps */}
+          {!isSignUp && !isNative && (
             <>
               <div className="relative my-8">
                 <div className="absolute inset-0 flex items-center">
