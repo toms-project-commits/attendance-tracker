@@ -222,7 +222,9 @@ export default function LoginPage() {
 
     try {
       if (isNative) {
-        // For native apps, get OAuth URL and open in external browser
+        // For native apps, use Capacitor Browser plugin for in-app browser
+        const { Browser } = await import('@capacitor/browser');
+        
         const { data, error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
@@ -234,11 +236,11 @@ export default function LoginPage() {
         if (error) throw error;
         if (!data.url) throw new Error('Failed to get OAuth URL');
 
-        // Open the OAuth URL in system browser
-        window.open(data.url, '_system');
+        // Open the OAuth URL in in-app browser
+        await Browser.open({ url: data.url });
         
         // Keep loading indicator until deep link callback
-        setMessage({ text: 'Complete sign-in in your browser, then return to the app', type: 'success' });
+        setMessage({ text: 'Complete sign-in in the browser, then you will be redirected back to the app', type: 'success' });
       } else {
         // For web, use normal OAuth redirect
         const { error } = await supabase.auth.signInWithOAuth({
