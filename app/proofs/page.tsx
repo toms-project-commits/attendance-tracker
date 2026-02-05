@@ -41,11 +41,15 @@ export default function ProofsPage() {
   const loadProofs = async () => {
     setLoading(true);
     try {
+      console.log('[PROOFS PAGE] Starting to load proofs...');
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
+        console.log('[PROOFS PAGE] No user found, redirecting to login');
         router.push('/login');
         return;
       }
+
+      console.log('[PROOFS PAGE] User found:', user.id);
 
       // Load subjects
       const { data: subjectsData } = await supabase
@@ -54,13 +58,21 @@ export default function ProofsPage() {
         .eq('user_id', user.id)
         .order('name');
 
+      console.log('[PROOFS PAGE] Subjects loaded:', subjectsData?.length || 0);
       setSubjects(subjectsData || []);
 
       // Load proofs from persistent storage
+      console.log('[PROOFS PAGE] Calling getProofsBySubject...');
       const proofs = await getProofsBySubject(user.id);
+      console.log('[PROOFS PAGE] Proofs loaded:', Object.keys(proofs).length, 'subjects with proofs');
+      console.log('[PROOFS PAGE] Proof details:', proofs);
       setProofsBySubject(proofs);
     } catch (error) {
-      console.error('Error loading proofs:', error);
+      console.error('[PROOFS PAGE ERROR] Error loading proofs:', error);
+      console.error('[PROOFS PAGE ERROR] Error details:', {
+        message: error instanceof Error ? error.message : 'Unknown error',
+        stack: error instanceof Error ? error.stack : undefined
+      });
     } finally {
       setLoading(false);
     }
