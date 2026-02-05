@@ -249,19 +249,35 @@ export async function getProofsForDate(
 export async function getProofsBySubject(
   userId: string
 ): Promise<Record<string, Array<ProofMetadata & { dataUrl: string }>>> {
+  console.log('[PROOF] Getting proofs by subject for user:', userId);
+  
   try {
+    // First, try to ensure directory exists or check if it's there
+    try {
+      await ensureDirectory();
+    } catch (dirError) {
+      console.log('[PROOF] Directory might not exist yet, trying to read anyway');
+    }
+    
+    console.log('[PROOF] Reading directory:', PROOF_DIR);
     const result = await Filesystem.readdir({
       path: PROOF_DIR,
       directory: Directory.Data,
     });
 
+    console.log('[PROOF] Total files in directory:', result.files.length);
     const proofsBySubject: Record<string, Array<ProofMetadata & { dataUrl: string }>> = {};
+
+    let processedFiles = 0;
+    let skippedFiles = 0;
 
     for (const file of result.files) {
       const filename = typeof file === 'string' ? file : (file as any).name;
 
       // Only process metadata files for this user
       if (filename.startsWith(`${userId}_`) && filename.endsWith('.json')) {
+        processedFiles++;
+        console.log('[PROOF] Processing metadata file:', filename);
         try {
           const metadataFile = await Filesystem.readFile({
             path: `${PROOF_DIR}/${filename}`,
@@ -271,8 +287,10 @@ export async function getProofsBySubject(
           // Decode base64 metadata back to JSON
           const metadataJson = atob(metadataFile.data as string);
           const metadata: ProofMetadata = JSON.parse(metadataJson);
+          console.log('[PROOF] Metadata parsed:', metadata);
 
           // Read corresponding image
+          console.log('[PROOF] Reading image file:', metadata.filename);
           const imageFile = await Filesystem.readFile({
             path: `${PROOF_DIR}/${metadata.filename}`,
             directory: Directory.Data,
@@ -288,11 +306,16 @@ export async function getProofsBySubject(
           }
 
           proofsBySubject[metadata.subjectId].push(proof);
+          console.log('[PROOF] Successfully loaded proof for subject:', metadata.subjectId);
         } catch (err) {
-          console.error('Error reading proof file:', err);
+          console.error('[PROOF ERROR] Error reading proof file:', filename, err);
+          skippedFiles++;
         }
       }
     }
+
+    console.log('[PROOF] Summary: Processed', processedFiles, 'metadata files,', skippedFiles, 'failed');
+    console.log('[PROOF] Total subjects with proofs:', Object.keys(proofsBySubject).length);
 
     // Sort each subject's proofs by timestamp
     Object.keys(proofsBySubject).forEach((subjectId) => {
@@ -300,8 +323,23 @@ export async function getProofsBySubject(
     });
 
     return proofsBySubject;
-  } catch (error) {
-    console.error('Error getting proofs by subject:', error);
+  } catch (error: any) {
+    console.error('[PROOF ERROR] Error getting proofs by subject:', error);
+    console.error('[PROOF ERROR] Error details:', {
+      message: error.message,
+      name: error.name,
+      stack: error.stack
+    });
+    
+    // If directory doesn't exist, return empty object (no proofs yet)
+    const errorMsg = error?.message?.toLowerCase() || '';
+    if (errorMsg.includes('does not exist') || errorMsg.includes('not found') || errorMsg.includes('no such file')) {
+      console.log('[PROOF] Proof directory does not exist yet - no proofs saved');
+      return {};
+    }
+    
+    // For other errors, still return empty but log more details
+    console.error('[PROOF ERROR] Unexpected error, returning empty result');
     return {};
   }
 }
