@@ -234,7 +234,10 @@ export default function MarkAttendancePage() {
   const handleSave = async () => {
     setSaving(true);
     const { data: { user } } = await supabase.auth.getUser();
-    if (!user) return;
+    if (!user) {
+      setSaving(false);
+      return;
+    }
 
     try {
       // Save proof images to local storage (IndexedDB)
@@ -275,19 +278,27 @@ export default function MarkAttendancePage() {
           })
       );
 
-      // Delete existing attendance for this date
-      await supabase
+      // First, delete existing attendance for this date
+      const { error: deleteError } = await supabase
         .from('attendance_logs')
         .delete()
         .eq('user_id', user.id)
         .eq('date', date);
 
-      // Insert new logs
+      if (deleteError) {
+        console.error('Delete error:', deleteError);
+        throw new Error(`Failed to clear existing attendance: ${deleteError.message}`);
+      }
+
+      // Then insert new logs if any
       if (logsWithProofs.length > 0) {
-        const { error } = await supabase.from('attendance_logs').insert(logsWithProofs);
-        if (error) {
-          console.error('Save error:', error);
-          throw error;
+        const { error: insertError } = await supabase
+          .from('attendance_logs')
+          .insert(logsWithProofs);
+        
+        if (insertError) {
+          console.error('Insert error:', insertError);
+          throw new Error(`Failed to save attendance: ${insertError.message}`);
         }
       }
       
@@ -296,6 +307,7 @@ export default function MarkAttendancePage() {
       
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
+      console.error('Save attendance error:', err);
       alert("Error saving attendance: " + errorMessage);
     } finally {
       setSaving(false);
