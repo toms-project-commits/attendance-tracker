@@ -1,10 +1,31 @@
 'use client';
 
 import { ArrowLeft, Zap, Users, Code } from 'lucide-react';
-import Link from 'next/link';
+import { useRouter } from 'next/navigation';
+import { useEffect, useState } from 'react';
+import { supabase } from '@/lib/supabase';
 import { clsx } from 'clsx';
 
 export default function AboutPage() {
+  const router = useRouter();
+  const [isAuthenticated, setIsAuthenticated] = useState<boolean | null>(null);
+
+  useEffect(() => {
+    // Check authentication status
+    supabase.auth.getSession().then(({ data: { session } }) => {
+      setIsAuthenticated(!!session);
+    });
+  }, []);
+
+  const handleGoBack = () => {
+    // If user is authenticated, go to dashboard; otherwise go to login
+    if (isAuthenticated) {
+      router.push('/dashboard');
+    } else {
+      router.push('/login');
+    }
+  };
+
   return (
     <div className="min-h-screen pb-24" style={{ background: 'var(--background)' }}>
       {/* Decorative background elements */}
@@ -18,8 +39,8 @@ export default function AboutPage() {
       <div className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white p-4 sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
         <div className="max-w-3xl mx-auto">
           <div className="flex items-center gap-4">
-            <Link 
-              href="/login" 
+            <button 
+              onClick={handleGoBack}
               className={clsx(
                 "p-3 border-[3px] border-black bg-white",
                 "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
@@ -30,7 +51,7 @@ export default function AboutPage() {
               )}
             >
               <ArrowLeft size={20} className="text-black dark:text-white" />
-            </Link>
+            </button>
             <div className="flex-1">
               <h1 className="text-xl md:text-2xl font-black text-black dark:text-white">
                 About BunkSafe
@@ -158,10 +179,10 @@ export default function AboutPage() {
           </div>
         </div>
 
-        {/* BACK TO LOGIN BUTTON */}
+        {/* BACK BUTTON */}
         <div className="pt-4">
-          <Link 
-            href="/login"
+          <button 
+            onClick={handleGoBack}
             className={clsx(
               "w-full py-4 font-black text-lg text-white flex items-center justify-center gap-3",
               "border-[3px] border-black bg-blue-500",
@@ -174,8 +195,8 @@ export default function AboutPage() {
             )}
           >
             <ArrowLeft size={20} />
-            Back to Login
-          </Link>
+            {isAuthenticated === null ? 'Go Back' : isAuthenticated ? 'Back to Dashboard' : 'Back to Login'}
+          </button>
         </div>
 
         {/* Attribution */}
