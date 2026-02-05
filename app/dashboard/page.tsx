@@ -12,6 +12,7 @@ import {
   AlertTriangle,
   TrendingUp,
   Zap,
+  Image as ImageIcon,
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
@@ -469,10 +470,11 @@ const Dashboard = memo(function Dashboard() {
         )}
 
         {/* MANAGEMENT GRID - Bento Style */}
-        <h2 className="text-2xl font-black text-black dark:text-white pt-4">
-          📚 Manage Your Classes
+        <h2 className="text-2xl font-black text-black dark:text-white pt-4 flex items-center gap-2">
+          <BookOpen size={24} />
+          Manage Your Classes
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
           {/* Card 1: Subjects */}
           <Link href="/subjects" className="block">
             <BrutalCard className="h-full bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50">
@@ -504,7 +506,7 @@ const Dashboard = memo(function Dashboard() {
           </Link>
 
           {/* Card 3: Analytics */}
-          <Link href="/analytics" className="block md:col-span-2 lg:col-span-1">
+          <Link href="/analytics" className="block">
             <BrutalCard className="h-full bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50">
               <div className="h-14 w-14 bg-green-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <PieChart size={28} />
@@ -514,6 +516,21 @@ const Dashboard = memo(function Dashboard() {
               </h3>
               <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
                 View detailed stats, track progress, and get actionable insights.
+              </p>
+            </BrutalCard>
+          </Link>
+
+          {/* Card 4: View Proofs */}
+          <Link href="/proofs" className="block">
+            <BrutalCard className="h-full bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50">
+              <div className="h-14 w-14 bg-orange-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
+                <ImageIcon size={28} />
+              </div>
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+                View Proofs
+              </h3>
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
+                Browse GPS-verified attendance proofs organized by subject.
               </p>
             </BrutalCard>
           </Link>

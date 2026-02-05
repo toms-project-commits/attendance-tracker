@@ -3,10 +3,12 @@
 import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Check, X, Ban, Calendar, Save, Loader2, Plus, ChevronLeft, ChevronRight } from 'lucide-react';
+import { ArrowLeft, Check, X, Ban, Calendar, Save, Loader2, Plus, ChevronLeft, ChevronRight, Camera, Image as ImageIcon, AlertTriangle, FileEdit, Zap, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { format, getDay, parseISO, addDays, subDays, startOfDay, isSameDay, isBefore } from 'date-fns';
 import { clsx } from 'clsx';
+import ProofCapture from '@/components/ProofCapture';
+import { saveProofPersistent, getProofPersistent, deleteProofPersistent } from '@/lib/persistentProofStorage';
 
 type ClassItem = {
   id?: string;
@@ -18,6 +20,8 @@ type ClassItem = {
   end_time: string;
   status: 'PRESENT' | 'ABSENT' | 'CANCELLED' | null;
   is_extra?: boolean;
+  proof_file?: File;
+  proof_url?: string;
 };
 
 type Subject = {
@@ -36,6 +40,15 @@ export default function MarkAttendancePage() {
   const [classes, setClasses] = useState<ClassItem[]>([]);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [showAddExtraModal, setShowAddExtraModal] = useState(false);
+  const [showProofCapture, setShowProofCapture] = useState(false);
+  const [selectedClassIndex, setSelectedClassIndex] = useState<number | null>(null);
+  const [viewingProof, setViewingProof] = useState<string | null>(null);
+  const [warningDismissed, setWarningDismissed] = useState(() => {
+    if (typeof window !== 'undefined') {
+      return localStorage.getItem('proof_warning_dismissed') === 'true';
+    }
+    return false;
+  });
 
   // Extra class form state
   const [selectedSubjectId, setSelectedSubjectId] = useState('');
@@ -120,7 +133,7 @@ export default function MarkAttendancePage() {
 
       const { data: logs, error: logsError } = await supabase
         .from('attendance_logs')
-        .select('subject_id, status, timetable_slot_id, start_time, end_time')
+        .select('subject_id, status, timetable_slot_id, start_time, end_time, proof_url')
         .eq('user_id', user.id)
         .eq('date', date);
 
@@ -152,7 +165,8 @@ export default function MarkAttendancePage() {
             color: subjectData?.color_hex || '#94a3b8',
             start_time: startTime,
             end_time: endTime,
-            status: (existingLog?.status as ClassItem['status']) || null
+            status: (existingLog?.status as ClassItem['status']) || null,
+            proof_url: existingLog?.proof_url || undefined
           });
         });
       }
@@ -177,7 +191,8 @@ export default function MarkAttendancePage() {
             start_time: startTime,
             end_time: endTime,
             status: (extraLog?.status as ClassItem['status']) || null,
-            is_extra: true
+            is_extra: true,
+            proof_url: extraLog?.proof_url || undefined
           });
         }
       }
@@ -222,6 +237,44 @@ export default function MarkAttendancePage() {
     if (!user) return;
 
     try {
+      // Save proof images to local storage (IndexedDB)
+      const logsWithProofs = await Promise.all(
+        classes
+          .filter(c => c.status !== null)
+          .map(async (c) => {
+            let proofUrl = c.proof_url;
+
+            // If there's a new proof file, save it to persistent storage
+            if (c.proof_file) {
+              try {
+                const proofId = await saveProofPersistent(
+                  user.id,
+                  date,
+                  c.subject_id,
+                  c.subject_name,
+                  c.proof_file
+                );
+                // Store proof ID as the URL
+                proofUrl = `proof://${proofId}`;
+              } catch (error) {
+                console.error('Persistent storage error:', error);
+                throw new Error(`Failed to save proof for ${c.subject_name}`);
+              }
+            }
+
+            return {
+              user_id: user.id,
+              subject_id: c.subject_id,
+              date: date,
+              status: c.status,
+              timetable_slot_id: c.is_extra ? null : c.timetable_id,
+              start_time: c.is_extra ? c.start_time : null,
+              end_time: c.is_extra ? c.end_time : null,
+              proof_url: proofUrl || null,
+            };
+          })
+      );
+
       // Delete existing attendance for this date
       await supabase
         .from('attendance_logs')
@@ -229,22 +282,9 @@ export default function MarkAttendancePage() {
         .eq('user_id', user.id)
         .eq('date', date);
 
-      const logsToInsert = classes
-        .filter(c => c.status !== null)
-        .map(c => ({
-          user_id: user.id,
-          subject_id: c.subject_id,
-          date: date,
-          status: c.status,
-          // For timetable classes, store timetable_slot_id
-          timetable_slot_id: c.is_extra ? null : c.timetable_id,
-          // For extra classes, store times
-          start_time: c.is_extra ? c.start_time : null,
-          end_time: c.is_extra ? c.end_time : null
-        }));
-
-      if (logsToInsert.length > 0) {
-        const { error } = await supabase.from('attendance_logs').insert(logsToInsert);
+      // Insert new logs
+      if (logsWithProofs.length > 0) {
+        const { error } = await supabase.from('attendance_logs').insert(logsWithProofs);
         if (error) {
           console.error('Save error:', error);
           throw error;
@@ -299,6 +339,70 @@ export default function MarkAttendancePage() {
     const displayHour = hour % 12 || 12;
     return `${displayHour}:${m} ${ampm}`;
   };
+
+  // Handle proof capture
+  const handleCaptureProof = useCallback((index: number) => {
+    setSelectedClassIndex(index);
+    setShowProofCapture(true);
+  }, []);
+
+  const handleProofCaptured = useCallback((file: File) => {
+    if (selectedClassIndex !== null) {
+      const updated = [...classes];
+      updated[selectedClassIndex].proof_file = file;
+      setClasses(updated);
+    }
+    setShowProofCapture(false);
+    setSelectedClassIndex(null);
+  }, [selectedClassIndex, classes]);
+
+  const handleViewProof = useCallback(async (proofUrl: string) => {
+    // If it's a proof stored in persistent storage, retrieve it
+    if (proofUrl.startsWith('proof://')) {
+      const proofId = proofUrl.replace('proof://', '');
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (!user) return;
+        
+        // Extract info from current class to get proof
+        const classWithProof = classes.find(c => c.proof_url === proofUrl);
+        if (classWithProof) {
+          const dataUrl = await getProofPersistent(user.id, date, classWithProof.subject_id);
+          if (dataUrl) {
+            setViewingProof(dataUrl);
+          } else {
+            alert('Proof not found. It may have been deleted.');
+          }
+        }
+      } catch (error) {
+        console.error('Error loading proof:', error);
+        alert('Failed to load proof');
+      }
+    } else {
+      setViewingProof(proofUrl);
+    }
+  }, [classes, date]);
+
+  const handleRemoveProof = useCallback(async (index: number) => {
+    const updated = [...classes];
+    const classItem = updated[index];
+    
+    // If there's a persistent proof, try to delete it
+    if (classItem.proof_url && classItem.proof_url.startsWith('proof://')) {
+      try {
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          await deleteProofPersistent(user.id, date, classItem.subject_id);
+        }
+      } catch (error) {
+        console.error('Error deleting proof:', error);
+      }
+    }
+    
+    delete updated[index].proof_file;
+    delete updated[index].proof_url;
+    setClasses(updated);
+  }, [classes, date]);
 
   const isToday = isSameDay(parseISO(date), startOfDay(new Date()));
   const isPast = isBefore(parseISO(date), startOfDay(new Date())) && !isToday;
@@ -436,18 +540,53 @@ export default function MarkAttendancePage() {
         {/* Info Banner for Past Dates */}
         {isPast && classes.length > 0 && (
           <div className="border-[3px] border-black bg-orange-400 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white">
-            <p className="font-black text-black">📝 Editing past attendance</p>
-            <p className="text-sm font-semibold text-black/80 mt-1">
-              Changes will be reflected in your analytics.
-            </p>
+            <div className="flex items-start gap-3">
+              <FileEdit className="text-black shrink-0" size={20} />
+              <div>
+                <p className="font-black text-black">Editing Past Attendance</p>
+                <p className="text-sm font-semibold text-black/80 mt-1">
+                  Changes will be reflected in your analytics.
+                </p>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Dismissible Proof Storage Warning */}
+        {!warningDismissed && (
+          <div className="border-[3px] border-black bg-yellow-400 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+            <div className="flex gap-3">
+              <AlertTriangle className="text-black shrink-0" size={24} />
+              <div className="flex-1">
+                <p className="font-black text-black text-sm mb-2">
+                  Proof Storage Notice
+                </p>
+                <ul className="text-xs text-black/90 space-y-1 font-bold">
+                  <li>• Proofs stored on device (not cloud)</li>
+                  <li>• Clearing app data DELETES all proofs</li>
+                  <li>• Not synced across devices</li>
+                </ul>
+              </div>
+              <button
+                onClick={() => {
+                  setWarningDismissed(true);
+                  localStorage.setItem('proof_warning_dismissed', 'true');
+                }}
+                className="p-2 border-[2px] border-black bg-white hover:bg-gray-100 transition-colors"
+                aria-label="Dismiss warning"
+              >
+                <X size={16} />
+              </button>
+            </div>
           </div>
         )}
 
         {/* Bulk Action Buttons */}
         {!loading && classes.length > 0 && (
           <div className="border-[3px] border-black bg-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
-            <p className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-3">
-              ⚡ Quick Actions
+            <p className="text-xs font-black uppercase tracking-wider text-gray-600 dark:text-gray-400 mb-3 flex items-center gap-2">
+              <Zap size={14} />
+              Quick Actions
             </p>
             <div className="grid grid-cols-3 gap-3">
               <button
@@ -536,8 +675,9 @@ export default function MarkAttendancePage() {
                 />
                 <div className="flex-1">
                   <h3 className="font-black text-lg text-black dark:text-white">{cls.subject_name}</h3>
-                  <div className="text-sm font-bold text-gray-600 dark:text-gray-400">
-                    🕐 {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
+                  <div className="text-sm font-bold text-gray-600 dark:text-gray-400 flex items-center gap-1">
+                    <Clock size={14} />
+                    {formatTime(cls.start_time)} - {formatTime(cls.end_time)}
                   </div>
                 </div>
                 {cls.is_extra && (
@@ -548,7 +688,7 @@ export default function MarkAttendancePage() {
               </div>
 
               {/* ACTION BUTTONS - Neo-Brutalist Style */}
-              <div className="grid grid-cols-3 gap-3">
+              <div className="grid grid-cols-3 gap-3 mb-3">
                 {/* PRESENT Button */}
                 <button
                   onClick={() => handleSetStatus(idx, 'PRESENT')}
@@ -612,16 +752,112 @@ export default function MarkAttendancePage() {
                   <span className="text-xs">CANCELLED</span>
                 </button>
               </div>
+
+              {/* PROOF OF ATTENDANCE SECTION */}
+              <div className="border-t-[2px] border-black/10 dark:border-white/10 pt-3">
+                {cls.proof_file || cls.proof_url ? (
+                  <div className="flex gap-2">
+                    <button
+                      onClick={() => cls.proof_url && handleViewProof(cls.proof_url)}
+                      className={clsx(
+                        "flex-1 py-2 px-3 font-bold text-sm flex items-center justify-center gap-2",
+                        "border-[2px] border-black bg-blue-400 text-black",
+                        "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
+                        "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                        "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                        "transition-all duration-150",
+                        "dark:border-white dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]"
+                      )}
+                    >
+                      <ImageIcon size={16} />
+                      {cls.proof_file ? 'Preview Proof' : 'View Proof'}
+                    </button>
+                    <button
+                      onClick={() => handleRemoveProof(idx)}
+                      className={clsx(
+                        "py-2 px-3 font-bold text-sm",
+                        "border-[2px] border-black bg-red-400 text-black",
+                        "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
+                        "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                        "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                        "transition-all duration-150",
+                        "dark:border-white dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]"
+                      )}
+                    >
+                      <X size={16} />
+                    </button>
+                  </div>
+                ) : (
+                  <button
+                    onClick={() => handleCaptureProof(idx)}
+                    className={clsx(
+                      "w-full py-2 px-3 font-bold text-sm flex items-center justify-center gap-2",
+                      "border-[2px] border-black bg-purple-400 text-black",
+                      "shadow-[2px_2px_0px_0px_rgba(0,0,0,1)]",
+                      "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                      "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                      "transition-all duration-150",
+                      "dark:border-white dark:shadow-[2px_2px_0px_0px_rgba(255,255,255,1)]"
+                    )}
+                  >
+                    <Camera size={16} />
+                    Capture Proof (Optional)
+                  </button>
+                )}
+              </div>
             </div>
           ))
         )}
       </div>
 
+      {/* PROOF CAPTURE MODAL */}
+      {showProofCapture && selectedClassIndex !== null && (
+        <ProofCapture
+          onCapture={handleProofCaptured}
+          onCancel={() => {
+            setShowProofCapture(false);
+            setSelectedClassIndex(null);
+          }}
+          subjectName={classes[selectedClassIndex]?.subject_name}
+        />
+      )}
+
+      {/* VIEW PROOF MODAL */}
+      {viewingProof && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onClick={() => setViewingProof(null)}>
+          <div className="border-[3px] border-white bg-slate-900 w-full max-w-4xl shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b-[3px] border-white p-4 flex items-center justify-between bg-blue-500">
+              <h3 className="text-xl font-black text-white flex items-center gap-2">
+                <ImageIcon size={24} />
+                Attendance Proof
+              </h3>
+              <button
+                onClick={() => setViewingProof(null)}
+                className="p-2 border-[2px] border-white bg-red-500 text-white hover:bg-red-600 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <img
+                src={viewingProof}
+                alt="Attendance proof"
+                className="w-full h-auto border-[2px] border-white"
+              />
+            </div>
+          </div>
+        </div>
+      )}
+
       {/* ADD EXTRA CLASS MODAL */}
       {showAddExtraModal && (
         <div className="fixed inset-0 bg-black/70 flex items-center justify-center z-50 p-4">
           <div className="border-[3px] border-black bg-white p-6 w-full max-w-sm shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
-            <h3 className="text-xl font-black text-black dark:text-white mb-6">➕ Add Extra Class</h3>
+            <h3 className="text-xl font-black text-black dark:text-white mb-6 flex items-center gap-2">
+              <Plus size={24} />
+              Add Extra Class
+            </h3>
 
             <div className="space-y-4">
               {/* Subject Selection */}
