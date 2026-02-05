@@ -250,6 +250,7 @@ export default function MarkAttendancePage() {
             // If there's a new proof file, save it to persistent storage
             if (c.proof_file) {
               try {
+                console.log(`💾 Attempting to save proof for ${c.subject_name}...`);
                 const proofId = await saveProofPersistent(
                   user.id,
                   date,
@@ -259,11 +260,18 @@ export default function MarkAttendancePage() {
                 );
                 // Store proof ID as the URL
                 proofUrl = `proof://${proofId}`;
-              } catch (error) {
-                console.error(`Proof storage error for ${c.subject_name}:`, error);
+                console.log(`✅ Proof saved successfully for ${c.subject_name}, ID: ${proofId}`);
+              } catch (error: any) {
+                console.error(`❌ Proof storage error for ${c.subject_name}:`, error);
+                console.error('Full error details:', {
+                  message: error.message,
+                  name: error.name,
+                  stack: error.stack
+                });
+                
                 // Continue without proof - don't block attendance save
-                // User will be notified but attendance will still be saved
-                alert(`Warning: Could not save proof for ${c.subject_name}. Attendance will be saved without proof.`);
+                const errorDetail = error.message || 'Unknown error';
+                alert(`⚠️ Could not save proof for ${c.subject_name}\n\nReason: ${errorDetail}\n\nYour attendance will still be saved, but without the proof image.\n\nTip: Check browser console (F12) for more details.`);
                 proofUrl = undefined;
               }
             }
