@@ -30,12 +30,19 @@ async function ensureDirectory(): Promise<void> {
     });
     console.log('✓ Proof directory ensured:', PROOF_DIR);
   } catch (error: any) {
-    // Directory might already exist, that's fine
-    if (error?.message && !error.message.includes('exists') && !error.message.includes('Directory exists')) {
+    // Directory might already exist, that's fine - ignore these specific errors
+    const errorMsg = error?.message?.toLowerCase() || '';
+    const isAlreadyExistsError = 
+      errorMsg.includes('exist') || 
+      errorMsg.includes('already') ||
+      errorMsg.includes('directory');
+    
+    if (isAlreadyExistsError) {
+      console.log('✓ Proof directory already exists (this is fine)');
+    } else {
       console.error('❌ Error creating directory:', error);
       throw new Error(`Failed to create storage directory: ${error.message}`);
     }
-    console.log('✓ Proof directory already exists');
   }
 }
 
