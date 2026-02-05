@@ -158,33 +158,53 @@ export async function saveProofPersistent(
 
 /**
  * Get proof from persistent storage
+ * Now supports optional startTime parameter to match specific class
  */
 export async function getProofPersistent(
   userId: string,
   date: string,
-  subjectId: string
+  subjectId: string,
+  startTime?: string
 ): Promise<string | null> {
   try {
+    console.log('[PROOF] Getting proof for:', { userId, date, subjectId, startTime });
+    
     // List all files in directory
     const result = await Filesystem.readdir({
       path: PROOF_DIR,
       directory: Directory.Data,
     });
 
+    console.log('[PROOF] Total files in directory:', result.files.length);
+
+    // Build search prefix
+    const basePrefix = `${userId}_${date}_${subjectId}`;
+    const timeIdentifier = startTime ? `_${startTime.replace(':', '')}` : '';
+    const fullPrefix = `${basePrefix}${timeIdentifier}`;
+
+    console.log('[PROOF] Searching for files matching:', fullPrefix);
+
     // Find matching proof file
+    // If startTime is provided, match exact time, otherwise match any file for this subject/date
     const matchingFile = result.files.find((file: any) => {
       const name = typeof file === 'string' ? file : file.name;
-      return (
-        name.startsWith(`${userId}_${date}_${subjectId}`) &&
-        name.endsWith('.webp')
-      );
+      const matches = startTime
+        ? name.startsWith(fullPrefix) && name.endsWith('.webp')
+        : name.startsWith(basePrefix) && name.endsWith('.webp');
+      
+      if (matches) {
+        console.log('[PROOF] Found matching file:', name);
+      }
+      return matches;
     });
 
     if (!matchingFile) {
+      console.log('[PROOF] No matching file found');
       return null;
     }
 
     const filename = typeof matchingFile === 'string' ? matchingFile : (matchingFile as any).name;
+    console.log('[PROOF] Reading proof file:', filename);
 
     // Read the image file
     const fileData = await Filesystem.readFile({
@@ -192,10 +212,11 @@ export async function getProofPersistent(
       directory: Directory.Data,
     });
 
+    console.log('[PROOF] Successfully loaded proof');
     // Return as data URL
     return `data:image/webp;base64,${fileData.data}`;
   } catch (error) {
-    console.error('Error getting proof:', error);
+    console.error('[PROOF ERROR] Error getting proof:', error);
     return null;
   }
 }

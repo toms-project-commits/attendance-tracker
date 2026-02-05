@@ -391,7 +391,8 @@ export default function MarkAttendancePage() {
         // Extract info from current class to get proof
         const classWithProof = classes.find(c => c.proof_url === proofUrl);
         if (classWithProof) {
-          const dataUrl = await getProofPersistent(user.id, date, classWithProof.subject_id);
+          // Pass startTime to get the correct proof for this specific class
+          const dataUrl = await getProofPersistent(user.id, date, classWithProof.subject_id, classWithProof.start_time);
           if (dataUrl) {
             setViewingProof(dataUrl);
           } else {
@@ -416,7 +417,8 @@ export default function MarkAttendancePage() {
       try {
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
-          await deleteProofPersistent(user.id, date, classItem.subject_id);
+          // Pass startTime to delete the correct proof for this specific class
+          await deleteProofPersistent(user.id, date, classItem.subject_id, classItem.start_time);
         }
       } catch (error) {
         console.error('Error deleting proof:', error);
