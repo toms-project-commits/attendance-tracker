@@ -523,8 +523,18 @@ export default function LoginPage() {
           </p>
         </div>
 
-        {/* Attribution */}
+        {/* About Link */}
         <div className="mt-4 text-center">
+          <Link 
+            href="/about"
+            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2"
+          >
+            About the Developer and Mission
+          </Link>
+        </div>
+
+        {/* Attribution */}
+        <div className="mt-3 text-center">
           <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
             A project by Thomas George
           </p>

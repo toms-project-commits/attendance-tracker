@@ -273,7 +273,7 @@ export default function MarkAttendancePage() {
               timetable_slot_id: c.is_extra ? null : c.timetable_id,
               start_time: c.is_extra ? c.start_time : null,
               end_time: c.is_extra ? c.end_time : null,
-              // proof_url removed - column doesn't exist in database
+              proof_url: proofUrl || null, // Include proof_url in database insert
             };
           })
       );

@@ -131,7 +131,8 @@ export default function AnalyticsPage() {
       classesForDay.forEach((cls) => {
         if (!subjectMap[cls.subject_id]) return;
 
-        const logIndex = daysLogs.findIndex((log) => log.subject_id === cls.subject_id);
+        // Match log by timetable_slot_id for accuracy (handles multiple same subjects on same day)
+        const logIndex = daysLogs.findIndex((log) => log.timetable_slot_id === cls.id);
 
         let log = null;
         if (logIndex !== -1) {

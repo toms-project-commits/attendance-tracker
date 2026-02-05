@@ -37,6 +37,7 @@ export type AttendanceLog = {
   date: string;
   status: string;
   subject_id?: string | null;
+  timetable_slot_id?: string | null;
 };
 
 type StudentDataResult = {
