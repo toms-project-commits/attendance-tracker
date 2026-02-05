@@ -260,8 +260,11 @@ export default function MarkAttendancePage() {
                 // Store proof ID as the URL
                 proofUrl = `proof://${proofId}`;
               } catch (error) {
-                console.error('Persistent storage error:', error);
-                throw new Error(`Failed to save proof for ${c.subject_name}`);
+                console.error(`Proof storage error for ${c.subject_name}:`, error);
+                // Continue without proof - don't block attendance save
+                // User will be notified but attendance will still be saved
+                alert(`Warning: Could not save proof for ${c.subject_name}. Attendance will be saved without proof.`);
+                proofUrl = undefined;
               }
             }
 
@@ -584,10 +587,10 @@ export default function MarkAttendancePage() {
                   setWarningDismissed(true);
                   localStorage.setItem('proof_warning_dismissed', 'true');
                 }}
-                className="p-2 border-[2px] border-black bg-white hover:bg-gray-100 transition-colors"
+                className="p-2 border-[2px] border-black bg-yellow-300 hover:bg-yellow-200 text-black transition-colors dark:border-white"
                 aria-label="Dismiss warning"
               >
-                <X size={16} />
+                <X size={16} className="text-black" />
               </button>
             </div>
           </div>
