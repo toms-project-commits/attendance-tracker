@@ -102,9 +102,13 @@ export async function saveProofPersistent(
     };
 
     try {
+      // Write metadata as plain text (not base64)
+      const metadataJson = JSON.stringify(metadata);
+      const metadataBase64 = btoa(metadataJson); // Convert to base64 for Capacitor
+      
       await Filesystem.writeFile({
         path: `${PROOF_DIR}/${filename}.json`,
-        data: JSON.stringify(metadata),
+        data: metadataBase64,
         directory: Directory.Data,
       });
       console.log('✓ Metadata saved successfully');
@@ -212,7 +216,9 @@ export async function getProofsForDate(
             directory: Directory.Data,
           });
 
-          const metadata: ProofMetadata = JSON.parse(metadataFile.data as string);
+          // Decode base64 metadata back to JSON
+          const metadataJson = atob(metadataFile.data as string);
+          const metadata: ProofMetadata = JSON.parse(metadataJson);
 
           // Read corresponding image
           const imageFile = await Filesystem.readFile({
@@ -262,7 +268,9 @@ export async function getProofsBySubject(
             directory: Directory.Data,
           });
 
-          const metadata: ProofMetadata = JSON.parse(metadataFile.data as string);
+          // Decode base64 metadata back to JSON
+          const metadataJson = atob(metadataFile.data as string);
+          const metadata: ProofMetadata = JSON.parse(metadataJson);
 
           // Read corresponding image
           const imageFile = await Filesystem.readFile({
