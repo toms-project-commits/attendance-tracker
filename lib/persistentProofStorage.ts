@@ -28,7 +28,7 @@ async function ensureDirectory(): Promise<void> {
       directory: Directory.Data,
       recursive: true,
     });
-    console.log('✓ Proof directory ensured:', PROOF_DIR);
+    console.log('[PROOF] Proof directory ensured:', PROOF_DIR);
   } catch (error: any) {
     // Directory might already exist, that's fine - ignore these specific errors
     const errorMsg = error?.message?.toLowerCase() || '';
@@ -38,9 +38,9 @@ async function ensureDirectory(): Promise<void> {
       errorMsg.includes('directory');
     
     if (isAlreadyExistsError) {
-      console.log('✓ Proof directory already exists (this is fine)');
+      console.log('[PROOF] Proof directory already exists (this is fine)');
     } else {
-      console.error('❌ Error creating directory:', error);
+      console.error('[PROOF ERROR] Error creating directory:', error);
       throw new Error(`Failed to create storage directory: ${error.message}`);
     }
   }
@@ -56,41 +56,41 @@ export async function saveProofPersistent(
   subjectName: string,
   imageFile: File
 ): Promise<string> {
-  console.log('📸 Starting proof save...', { userId, date, subjectId, subjectName, fileSize: imageFile.size });
+  console.log('[PROOF] Starting proof save...', { userId, date, subjectId, subjectName, fileSize: imageFile.size });
   
   try {
     // Step 1: Ensure directory exists
-    console.log('📁 Step 1: Ensuring directory exists...');
+    console.log('[PROOF] Step 1: Ensuring directory exists...');
     await ensureDirectory();
-    console.log('✓ Directory ready');
+    console.log('[PROOF] Directory ready');
 
     // Step 2: Generate unique filename
     const timestamp = Date.now();
     const filename = `${userId}_${date}_${subjectId}_${timestamp}.webp`;
     const proofId = `proof_${timestamp}`;
-    console.log('✓ Step 2: Generated filename:', filename);
+    console.log('[PROOF] Step 2: Generated filename:', filename);
 
     // Step 3: Convert File to base64
-    console.log('🔄 Step 3: Converting image to base64...');
+    console.log('[PROOF] Step 3: Converting image to base64...');
     const base64Data = await fileToBase64(imageFile);
-    console.log('✓ Base64 conversion complete, length:', base64Data.length);
+    console.log('[PROOF] Base64 conversion complete, length:', base64Data.length);
 
     // Step 4: Save image file
-    console.log('💾 Step 4: Writing image file to filesystem...');
+    console.log('[PROOF] Step 4: Writing image file to filesystem...');
     try {
       await Filesystem.writeFile({
         path: `${PROOF_DIR}/${filename}`,
         data: base64Data,
         directory: Directory.Data,
       });
-      console.log('✓ Image file saved successfully');
+      console.log('[PROOF] Image file saved successfully');
     } catch (writeError: any) {
-      console.error('❌ Failed to write image file:', writeError);
+      console.error('[PROOF ERROR] Failed to write image file:', writeError);
       throw new Error(`File write failed: ${writeError.message || 'Unknown error'}`);
     }
 
     // Step 5: Save metadata
-    console.log('📝 Step 5: Writing metadata file...');
+    console.log('[PROOF] Step 5: Writing metadata file...');
     const metadata: ProofMetadata = {
       id: proofId,
       userId,
@@ -111,26 +111,26 @@ export async function saveProofPersistent(
         data: metadataBase64,
         directory: Directory.Data,
       });
-      console.log('✓ Metadata saved successfully');
+      console.log('[PROOF] Metadata saved successfully');
     } catch (metaError: any) {
-      console.error('❌ Failed to write metadata:', metaError);
+      console.error('[PROOF ERROR] Failed to write metadata:', metaError);
       // Try to cleanup the image file
       try {
         await Filesystem.deleteFile({
           path: `${PROOF_DIR}/${filename}`,
           directory: Directory.Data,
         });
-        console.log('🧹 Cleaned up orphaned image file');
+        console.log('[PROOF] Cleaned up orphaned image file');
       } catch (cleanupError) {
-        console.error('⚠️ Could not cleanup orphaned file:', cleanupError);
+        console.error('[PROOF WARNING] Could not cleanup orphaned file:', cleanupError);
       }
       throw new Error(`Metadata write failed: ${metaError.message || 'Unknown error'}`);
     }
 
-    console.log('✅ PROOF SAVED SUCCESSFULLY! ID:', proofId);
+    console.log('[PROOF SUCCESS] PROOF SAVED SUCCESSFULLY! ID:', proofId);
     return proofId;
   } catch (error: any) {
-    console.error('❌ PROOF SAVE FAILED:', error);
+    console.error('[PROOF ERROR] PROOF SAVE FAILED:', error);
     console.error('Error details:', {
       message: error.message,
       name: error.name,
