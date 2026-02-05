@@ -452,6 +452,23 @@ export default function SubjectsPage() {
           )}
         </div>
 
+        {/* About Link */}
+        <div className="text-center pt-6 pb-2">
+          <Link 
+            href="/about"
+            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2"
+          >
+            About the Developer and Mission
+          </Link>
+        </div>
+
+        {/* Attribution */}
+        <div className="text-center pb-4">
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
+            A project by Thomas George
+          </p>
+        </div>
+
       </div>
     </div>
   );

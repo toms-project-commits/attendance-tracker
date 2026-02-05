@@ -2,6 +2,7 @@
 import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
+import Link from 'next/link';
 import { ChevronRight, Calendar as CalIcon, Info, AlertCircle, User, Loader2 } from 'lucide-react';
 import { 
   eachDayOfInterval, 
@@ -400,7 +401,7 @@ export default function SetupPage() {
                     key={num}
                     onClick={() => toggleSaturdayRule(num)}
                     className={clsx(
-                      "p-3 border-[3px] border-black font-black text-xs transition-all duration-150",
+                      "p-2 md:p-3 border-[3px] border-black font-black text-[10px] md:text-xs transition-all duration-150 min-h-[60px] md:min-h-0",
                       isOff 
                         ? "bg-red-500 text-white shadow-none translate-x-[2px] translate-y-[2px]" 
                         : "bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px]",
@@ -410,10 +411,10 @@ export default function SetupPage() {
                         : "dark:bg-slate-700 dark:text-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
                     )}
                   >
-                    <div className="text-center">
-                      <div>{ordinalSuffix[num]}</div>
-                      <div>SAT</div>
-                      <div className="text-[8px] mt-1">{isOff ? 'OFF' : 'WORK'}</div>
+                    <div className="text-center flex flex-col items-center justify-center gap-0.5">
+                      <div className="leading-tight">{ordinalSuffix[num]}</div>
+                      <div className="leading-tight">SAT</div>
+                      <div className="text-[8px] leading-tight">{isOff ? 'OFF' : 'WORK'}</div>
                     </div>
                   </button>
                 );
@@ -531,6 +532,23 @@ export default function SetupPage() {
               <>🚀 Save & Continue <ChevronRight size={24} /></>
             )}
           </button>
+
+          {/* About Link */}
+          <div className="text-center pt-6 pb-2">
+            <Link 
+              href="/about"
+              className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2"
+            >
+              About the Developer and Mission
+            </Link>
+          </div>
+
+          {/* Attribution */}
+          <div className="text-center pb-4">
+            <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
+              A project by Thomas George
+            </p>
+          </div>
         </div>
         )}
       </div>
