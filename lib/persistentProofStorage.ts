@@ -54,9 +54,10 @@ export async function saveProofPersistent(
   date: string,
   subjectId: string,
   subjectName: string,
-  imageFile: File
+  imageFile: File,
+  startTime?: string
 ): Promise<string> {
-  console.log('[PROOF] Starting proof save...', { userId, date, subjectId, subjectName, fileSize: imageFile.size });
+  console.log('[PROOF] Starting proof save...', { userId, date, subjectId, subjectName, startTime, fileSize: imageFile.size });
   
   try {
     // Step 1: Ensure directory exists
@@ -64,11 +65,23 @@ export async function saveProofPersistent(
     await ensureDirectory();
     console.log('[PROOF] Directory ready');
 
-    // Step 2: Generate unique filename
+    // Step 2: Delete existing proof for this exact class (if any)
+    if (startTime) {
+      console.log('[PROOF] Step 2a: Deleting old proof for this class if it exists...');
+      try {
+        await deleteProofPersistent(userId, date, subjectId, startTime);
+        console.log('[PROOF] Old proof deleted (or none existed)');
+      } catch (deleteError) {
+        console.log('[PROOF] No old proof to delete or error deleting:', deleteError);
+      }
+    }
+
+    // Step 3: Generate unique filename (include start_time to differentiate multiple classes)
     const timestamp = Date.now();
-    const filename = `${userId}_${date}_${subjectId}_${timestamp}.webp`;
+    const timeIdentifier = startTime ? `_${startTime.replace(':', '')}` : '';
+    const filename = `${userId}_${date}_${subjectId}${timeIdentifier}_${timestamp}.webp`;
     const proofId = `proof_${timestamp}`;
-    console.log('[PROOF] Step 2: Generated filename:', filename);
+    console.log('[PROOF] Step 3: Generated filename:', filename);
 
     // Step 3: Convert File to base64
     console.log('[PROOF] Step 3: Converting image to base64...');
@@ -350,7 +363,8 @@ export async function getProofsBySubject(
 export async function deleteProofPersistent(
   userId: string,
   date: string,
-  subjectId: string
+  subjectId: string,
+  startTime?: string
 ): Promise<void> {
   try {
     const result = await Filesystem.readdir({
@@ -358,11 +372,15 @@ export async function deleteProofPersistent(
       directory: Directory.Data,
     });
 
+    // Build search prefix - if startTime provided, match specific class, otherwise match all for that subject/date
+    const timeIdentifier = startTime ? `_${startTime.replace(':', '')}` : '';
+    const searchPrefix = `${userId}_${date}_${subjectId}${timeIdentifier}`;
+
     // Find matching proof files
     for (const file of result.files) {
       const filename = typeof file === 'string' ? file : (file as any).name;
 
-      if (filename.startsWith(`${userId}_${date}_${subjectId}`)) {
+      if (filename.startsWith(searchPrefix)) {
         await Filesystem.deleteFile({
           path: `${PROOF_DIR}/${filename}`,
           directory: Directory.Data,

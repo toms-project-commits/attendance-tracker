@@ -256,7 +256,8 @@ export default function MarkAttendancePage() {
                   date,
                   c.subject_id,
                   c.subject_name,
-                  c.proof_file
+                  c.proof_file,
+                  c.start_time // Pass start_time to differentiate multiple classes of same subject
                 );
                 // Store proof ID as the URL
                 proofUrl = `proof://${proofId}`;
