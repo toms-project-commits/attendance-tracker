@@ -204,7 +204,7 @@ export default function SubjectsPage() {
             <ArrowLeft size={20} className="text-black dark:text-white" />
           </Link>
           <div>
-            <h1 className="text-2xl md:text-3xl font-black text-black dark:text-white">📚 Manage Subjects</h1>
+            <h1 className="text-2xl md:text-3xl font-black text-black dark:text-white"> Manage Subjects</h1>
             <p className="text-sm font-semibold text-gray-600 dark:text-gray-400">Add and organize your classes</p>
           </div>
         </div>
