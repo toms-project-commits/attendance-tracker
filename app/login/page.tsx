@@ -305,7 +305,7 @@ export default function LoginPage() {
                     "dark:bg-slate-700 dark:text-white dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
                     "dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
                   )}
-                  placeholder="student@college.edu"
+                  placeholder="example@email.com"
                   value={email}
                   onChange={(e) => setEmail(e.target.value)}
                 />
@@ -519,7 +519,7 @@ export default function LoginPage() {
         {/* Bottom tagline */}
         <div className="mt-6 text-center">
           <p className="text-sm font-bold text-gray-600 dark:text-gray-400">
-            🎯 Track attendance • 📊 Get insights • ✅ Stay safe
+             Track attendance •  Get insights •  Stay safe
           </p>
         </div>
 
