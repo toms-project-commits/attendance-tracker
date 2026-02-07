@@ -26,6 +26,9 @@ interface Subject {
   color_hex: string;
 }
 
+// Default color for orphaned proofs (where subject was deleted)
+const ORPHANED_SUBJECT_COLOR = '#6b7280'; // gray-500
+
 export default function ProofsPage() {
   const router = useRouter();
   const [loading, setLoading] = useState(true);
@@ -186,8 +189,16 @@ export default function ProofsPage() {
         ) : viewMode === 'subject' ? (
           // BY SUBJECT VIEW
           Object.entries(proofsBySubject).map(([subjectId, proofs]) => {
+            // Skip empty proof arrays
+            if (proofs.length === 0) return null;
+            
+            // Get subject info - may be undefined if subject was deleted
             const subject = getSubjectInfo(subjectId);
-            if (!subject || proofs.length === 0) return null;
+            
+            // Use subject info if available, otherwise use stored proof metadata or defaults
+            const subjectName = subject?.name || proofs[0]?.subjectName || 'Deleted Subject';
+            const subjectColor = subject?.color_hex || ORPHANED_SUBJECT_COLOR;
+            const isOrphaned = !subject;
 
             return (
               <div
@@ -197,11 +208,16 @@ export default function ProofsPage() {
                 <div className="flex items-center gap-3 mb-4">
                   <div
                     className="w-4 h-12 border-[2px] border-black dark:border-white"
-                    style={{ backgroundColor: subject.color_hex }}
+                    style={{ backgroundColor: subjectColor }}
                   />
                   <div className="flex-1">
-                    <h3 className="font-black text-lg text-black dark:text-white">
-                      {subject.name}
+                    <h3 className="font-black text-lg text-black dark:text-white flex items-center gap-2">
+                      {subjectName}
+                      {isOrphaned && (
+                        <span className="text-xs font-bold bg-gray-500 text-white px-2 py-0.5 border-[1px] border-black dark:border-white">
+                          DELETED
+                        </span>
+                      )}
                     </h3>
                     <p className="text-sm font-bold text-gray-600 dark:text-gray-400">
                       {proofs.length} proof{proofs.length !== 1 ? 's' : ''}
@@ -225,7 +241,7 @@ export default function ProofsPage() {
                     >
                       <img
                         src={proof.dataUrl}
-                        alt={`Proof for ${subject.name}`}
+                        alt={`Proof for ${subjectName}`}
                         className="w-full h-32 object-cover"
                       />
                       <div className="p-2 bg-black/80 text-white">

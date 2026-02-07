@@ -13,6 +13,10 @@ import {
   TrendingUp,
   Zap,
   Image as ImageIcon,
+  Target,
+  Loader2,
+  PartyPopper,
+  Rocket,
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
@@ -276,7 +280,10 @@ const Dashboard = memo(function Dashboard() {
     return (
       <div className="min-h-screen flex items-center justify-center">
         <div className="border-[3px] border-black bg-yellow-400 p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] animate-pulse dark:border-white">
-          <span className="text-xl font-black">⏳ Loading your dashboard...</span>
+          <span className="text-xl font-black flex items-center gap-2">
+            <Loader2 className="animate-spin" size={24} />
+            Loading your dashboard...
+          </span>
         </div>
       </div>
     );
@@ -358,10 +365,16 @@ const Dashboard = memo(function Dashboard() {
             </div>
             <div className="flex-1">
               <h3 className={clsx(
-                "text-2xl md:text-3xl font-black",
+                "text-2xl md:text-3xl font-black flex items-center gap-2",
                 isSafe ? "text-black" : "text-white"
               )}>
-                {stats.total === 0 ? " READY TO START" : isSafe ? " YOU'RE SAFE" : " CRITICAL"}
+                {stats.total === 0 ? (
+                  <><Rocket size={28} /> READY TO START</>
+                ) : isSafe ? (
+                  <><CheckCircle size={28} /> YOU'RE SAFE</>
+                ) : (
+                  <><AlertTriangle size={28} /> CRITICAL</>
+                )}
               </h3>
               <p className={clsx(
                 "text-base md:text-lg font-bold",
@@ -457,8 +470,9 @@ const Dashboard = memo(function Dashboard() {
         {/* LOW ATTENDANCE WARNING */}
         {stats.total > 0 && !isSafe && (
           <BrutalCard className="bg-red-100 dark:bg-red-900/50" hoverable={false}>
-            <h3 className="text-2xl font-black text-red-600 dark:text-red-400 mb-4">
-              ⚠️ Attendance at Risk
+            <h3 className="text-2xl font-black text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
+              <AlertTriangle size={24} />
+              Attendance at Risk
             </h3>
             <p className="text-black dark:text-white text-lg font-semibold mb-6">
               Your attendance is below 75%. Check your analytics to see which subjects need attention.

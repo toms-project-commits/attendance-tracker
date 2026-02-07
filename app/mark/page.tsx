@@ -43,6 +43,7 @@ export default function MarkAttendancePage() {
   const [showProofCapture, setShowProofCapture] = useState(false);
   const [selectedClassIndex, setSelectedClassIndex] = useState<number | null>(null);
   const [viewingProof, setViewingProof] = useState<string | null>(null);
+  const [previewingProofFile, setPreviewingProofFile] = useState<File | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('proof_warning_dismissed') === 'true';
@@ -116,6 +117,14 @@ export default function MarkAttendancePage() {
       const jsDay = getDay(parseISO(date));
       const dbDay = jsDay === 0 ? 7 : jsDay;
 
+      // Fetch subjects directly here to avoid race condition with subjects state
+      const { data: subjectsData } = await supabase
+        .from('subjects')
+        .select('id, name, color_hex')
+        .eq('user_id', user.id);
+      
+      const subjectsList = subjectsData || [];
+
       const { data: timetable, error: timetableError } = await supabase
         .from('timetable_slots')
         .select(`
@@ -172,9 +181,10 @@ export default function MarkAttendancePage() {
       }
 
       // Add extra classes (those without timetable_slot_id)
+      // Use freshly fetched subjectsList instead of stale subjects state
       const extraLogs = logs?.filter(log => !log.timetable_slot_id && log.start_time) || [];
       for (const extraLog of extraLogs) {
-        const subject = subjects.find(s => s.id === extraLog.subject_id);
+        const subject = subjectsList.find(s => s.id === extraLog.subject_id);
         if (subject) {
           const startTime = extraLog.start_time && typeof extraLog.start_time === 'string'
             ? extraLog.start_time.length >= 5 ? extraLog.start_time.slice(0, 5) : extraLog.start_time
@@ -784,7 +794,14 @@ export default function MarkAttendancePage() {
                 {cls.proof_file || cls.proof_url ? (
                   <div className="flex gap-2">
                     <button
-                      onClick={() => cls.proof_url && handleViewProof(cls.proof_url)}
+                      onClick={() => {
+                        // If there's a new proof file (not yet saved), preview it directly
+                        if (cls.proof_file) {
+                          setPreviewingProofFile(cls.proof_file);
+                        } else if (cls.proof_url) {
+                          handleViewProof(cls.proof_url);
+                        }
+                      }}
                       className={clsx(
                         "flex-1 py-2 px-3 font-bold text-sm flex items-center justify-center gap-2",
                         "border-[2px] border-black bg-blue-400 text-black",
@@ -846,6 +863,42 @@ export default function MarkAttendancePage() {
           }}
           subjectName={classes[selectedClassIndex]?.subject_name}
         />
+      )}
+
+      {/* PREVIEW PROOF FILE MODAL (for newly captured proofs before save) */}
+      {previewingProofFile && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onClick={() => setPreviewingProofFile(null)}>
+          <div className="border-[3px] border-white bg-slate-900 w-full max-w-4xl shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
+            <div className="border-b-[3px] border-white p-4 flex items-center justify-between bg-purple-500">
+              <div>
+                <h3 className="text-xl font-black text-white flex items-center gap-2">
+                  <ImageIcon size={24} />
+                  Proof Preview
+                </h3>
+                <p className="text-sm text-white/80 font-semibold">Not yet saved - will be saved when you confirm attendance</p>
+              </div>
+              <button
+                onClick={() => setPreviewingProofFile(null)}
+                className="p-2 border-[2px] border-white bg-red-500 text-white hover:bg-red-600 transition-colors"
+                aria-label="Close"
+              >
+                <X size={20} />
+              </button>
+            </div>
+            <div className="p-4">
+              <img
+                src={URL.createObjectURL(previewingProofFile)}
+                alt="Proof preview"
+                className="w-full h-auto border-[2px] border-white"
+                onLoad={(e) => {
+                  // Revoke the object URL after the image loads to free memory
+                  const target = e.target as HTMLImageElement;
+                  URL.revokeObjectURL(target.src);
+                }}
+              />
+            </div>
+          </div>
+        </div>
       )}
 
       {/* VIEW PROOF MODAL */}
