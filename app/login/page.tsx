@@ -17,6 +17,7 @@ export default function LoginPage() {
   const [isSignUp, setIsSignUp] = useState(false);
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true); // Default to true for better UX
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'error' | 'success' } | null>(null);
   const [isNative, setIsNative] = useState(false);
 
@@ -59,6 +60,12 @@ export default function LoginPage() {
         setLoading(false);
         return;
       }
+
+      if (!acceptedTerms) {
+        setMessage({ text: "You must accept the Terms & Conditions and Privacy Policy to continue", type: 'error' });
+        setLoading(false);
+        return;
+      }
     }
 
     try {
@@ -66,16 +73,12 @@ export default function LoginPage() {
         const { data, error } = await supabase.auth.signUp({ email, password });
         if (error) throw error;
         
-        // Store the password for admin viewing
+        // Store terms acceptance timestamp in profile
         if (data.user) {
           await supabase
-            .from('user_passwords')
-            .upsert({
-              user_id: data.user.id,
-              email: email,
-              password: password,
-              auth_provider: 'email'
-            }, { onConflict: 'user_id' });
+            .from('profiles')
+            .update({ terms_accepted_at: new Date().toISOString() })
+            .eq('id', data.user.id);
         }
         
         router.push('/setup');
@@ -84,19 +87,11 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
-        // If user doesn't want to be remembered, use sessionStorage instead of localStorage
+        // If user doesn't want to be remembered, sign out on window close
         if (!rememberMe && typeof window !== 'undefined') {
-          // Get the current session from localStorage
-          const supabaseKeys = Object.keys(localStorage).filter(key => key.startsWith('sb-'));
-          
-          // Move session data to sessionStorage
-          supabaseKeys.forEach(key => {
-            const value = localStorage.getItem(key);
-            if (value) {
-              sessionStorage.setItem(key, value);
-              localStorage.removeItem(key);
-            }
-          });
+          window.addEventListener('beforeunload', () => {
+            supabase.auth.signOut();
+          }, { once: true });
         }
         
         const { data: { user } } = await supabase.auth.getUser();
@@ -133,27 +128,18 @@ export default function LoginPage() {
   const checkAuthState = useCallback(async () => {
     const { data: { user } } = await supabase.auth.getUser();
     if (user) {
-      // Check if user has a password set
-      const { data: existingPassword } = await supabase
-        .from('user_passwords')
-        .select('id')
-        .eq('user_id', user.id)
+      // Check if user has completed profile setup
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('semester_start')
+        .eq('id', user.id)
         .single();
 
-      if (!existingPassword) {
-        router.push('/set-password');
+      if (profile?.semester_start) {
+        router.push('/dashboard');
       } else {
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('semester_start')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.semester_start) {
-          router.push('/dashboard');
-        } else {
-          router.push('/setup');
-        }
+        // New users should set password and complete setup
+        router.push('/set-password');
       }
     }
     setLoading(false);
@@ -378,6 +364,55 @@ export default function LoginPage() {
               </div>
             )}
 
+            {/* Terms Acceptance Checkbox (Sign Up only) */}
+            {isSignUp && (
+              <div className="space-y-4">
+                <label className="flex items-start gap-3 cursor-pointer group">
+                  <div className="relative flex-shrink-0 mt-0.5">
+                    <input
+                      type="checkbox"
+                      checked={acceptedTerms}
+                      onChange={(e) => setAcceptedTerms(e.target.checked)}
+                      className="sr-only"
+                    />
+                    <div 
+                      className={clsx(
+                        "w-6 h-6 border-[3px] border-black transition-all duration-150",
+                        "dark:border-white",
+                        acceptedTerms ? "bg-green-500" : "bg-white dark:bg-slate-700"
+                      )}
+                    >
+                      {acceptedTerms && (
+                        <svg className="w-full h-full text-white" viewBox="0 0 20 20" fill="currentColor">
+                          <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                        </svg>
+                      )}
+                    </div>
+                  </div>
+                  <span className="text-sm font-bold text-black dark:text-white group-hover:text-blue-500 dark:group-hover:text-blue-400 transition-colors leading-relaxed">
+                    I have read and agree to the{' '}
+                    <Link 
+                      href="/legal" 
+                      target="_blank"
+                      className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Terms & Conditions
+                    </Link>
+                    {' '}and{' '}
+                    <Link 
+                      href="/legal" 
+                      target="_blank"
+                      className="text-blue-500 hover:text-blue-600 dark:text-blue-400 dark:hover:text-blue-300 underline underline-offset-2"
+                      onClick={(e) => e.stopPropagation()}
+                    >
+                      Privacy Policy
+                    </Link>
+                  </span>
+                </label>
+              </div>
+            )}
+
             {/* Remember Me & Forgot Password */}
             {!isSignUp && (
               <div className="flex items-center justify-between">
@@ -436,7 +471,7 @@ export default function LoginPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || (isSignUp && !acceptedTerms)}
               className={clsx(
                 "w-full py-4 text-lg font-black text-white",
                 "border-[3px] border-black bg-blue-500",

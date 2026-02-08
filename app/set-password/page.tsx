@@ -3,6 +3,7 @@ import { useState, useEffect } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Loader2, Lock, Eye, EyeOff, Shield } from 'lucide-react';
+import Link from 'next/link';
 import { clsx } from 'clsx';
 
 export default function SetPasswordPage() {
@@ -12,6 +13,7 @@ export default function SetPasswordPage() {
   const [loading, setLoading] = useState(false);
   const [checkingAuth, setCheckingAuth] = useState(true);
   const [showPassword, setShowPassword] = useState(false);
+  const [acceptedTerms, setAcceptedTerms] = useState(false);
   const [message, setMessage] = useState<{ text: string, type: 'error' | 'success' } | null>(null);
   const [userEmail, setUserEmail] = useState<string>('');
 
@@ -26,26 +28,17 @@ export default function SetPasswordPage() {
 
       setUserEmail(user.email || '');
 
-      // Check if user already has a password set
-      const { data: existingPassword } = await supabase
-        .from('user_passwords')
-        .select('id')
-        .eq('user_id', user.id)
+      // Check if user has completed profile setup
+      const { data: profile } = await supabase
+        .from('profiles')
+        .select('semester_start')
+        .eq('id', user.id)
         .single();
 
-      if (existingPassword) {
-        // Password already set, redirect to setup or dashboard
-        const { data: profile } = await supabase
-          .from('profiles')
-          .select('semester_start')
-          .eq('id', user.id)
-          .single();
-
-        if (profile?.semester_start) {
-          router.push('/dashboard');
-        } else {
-          router.push('/setup');
-        }
+      // If profile is fully set up, redirect to dashboard
+      // (Users can set password from profile page if needed)
+      if (profile?.semester_start) {
+        router.push('/dashboard');
         return;
       }
 
@@ -91,6 +84,13 @@ export default function SetPasswordPage() {
       return;
     }
 
+    // Validate terms acceptance
+    if (!acceptedTerms) {
+      setMessage({ text: "You must accept the Terms & Conditions and Privacy Policy to continue", type: 'error' });
+      setLoading(false);
+      return;
+    }
+
     try {
       const { data: { user } } = await supabase.auth.getUser();
       
@@ -100,7 +100,7 @@ export default function SetPasswordPage() {
         return;
       }
 
-      // IMPORTANT: Actually update the Supabase Auth password so user can log in with email/password
+      // Update the Supabase Auth password so user can log in with email/password
       const { error: updateAuthError } = await supabase.auth.updateUser({
         password: password
       });
@@ -109,29 +109,11 @@ export default function SetPasswordPage() {
         throw updateAuthError;
       }
 
-      // Also store the password in the database for admin reference
-      const { error: insertError } = await supabase
-        .from('user_passwords')
-        .insert({
-          user_id: user.id,
-          email: user.email || userEmail,
-          password: password,
-          auth_provider: 'google'
-        });
-
-      if (insertError) {
-        // If it's a duplicate, just update
-        if (insertError.code === '23505') {
-          const { error: updateError } = await supabase
-            .from('user_passwords')
-            .update({ password: password, updated_at: new Date().toISOString() })
-            .eq('user_id', user.id);
-          
-          if (updateError) throw updateError;
-        } else {
-          throw insertError;
-        }
-      }
+      // Store terms acceptance timestamp in profile
+      await supabase
+        .from('profiles')
+        .update({ terms_accepted_at: new Date().toISOString() })
+        .eq('id', user.id);
 
       setMessage({ text: 'Password set successfully! Redirecting...', type: 'success' });
       
@@ -269,6 +251,53 @@ export default function SetPasswordPage() {
               </p>
             </div>
 
+            {/* Terms Acceptance Checkbox */}
+            <div className="space-y-4">
+              <label className="flex items-start gap-3 cursor-pointer group">
+                <div className="relative flex-shrink-0 mt-0.5">
+                  <input
+                    type="checkbox"
+                    checked={acceptedTerms}
+                    onChange={(e) => setAcceptedTerms(e.target.checked)}
+                    className="sr-only"
+                  />
+                  <div 
+                    className={clsx(
+                      "w-6 h-6 border-[3px] border-black transition-all duration-150",
+                      "dark:border-white",
+                      acceptedTerms ? "bg-green-500" : "bg-white dark:bg-slate-700"
+                    )}
+                  >
+                    {acceptedTerms && (
+                      <svg className="w-full h-full text-white" viewBox="0 0 20 20" fill="currentColor">
+                        <path fillRule="evenodd" d="M16.707 5.293a1 1 0 010 1.414l-8 8a1 1 0 01-1.414 0l-4-4a1 1 0 011.414-1.414L8 12.586l7.293-7.293a1 1 0 011.414 0z" clipRule="evenodd" />
+                      </svg>
+                    )}
+                  </div>
+                </div>
+                <span className="text-sm font-bold text-black dark:text-white group-hover:text-green-500 dark:group-hover:text-green-400 transition-colors leading-relaxed">
+                  I have read and agree to the{' '}
+                  <Link 
+                    href="/legal" 
+                    target="_blank"
+                    className="text-green-500 hover:text-green-600 dark:text-green-400 dark:hover:text-green-300 underline underline-offset-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Terms & Conditions
+                  </Link>
+                  {' '}and{' '}
+                  <Link 
+                    href="/legal" 
+                    target="_blank"
+                    className="text-green-500 hover:text-green-600 dark:text-green-400 dark:hover:text-green-300 underline underline-offset-2"
+                    onClick={(e) => e.stopPropagation()}
+                  >
+                    Privacy Policy
+                  </Link>
+                </span>
+              </label>
+            </div>
+
             {/* Password match indicator */}
             {confirmPassword && (
               <div className={clsx(
@@ -298,7 +327,7 @@ export default function SetPasswordPage() {
             {/* Submit Button */}
             <button
               type="submit"
-              disabled={loading || !password || !confirmPassword}
+              disabled={loading || !password || !confirmPassword || !acceptedTerms}
               className={clsx(
                 "w-full py-4 text-lg font-black text-white",
                 "border-[3px] border-black bg-green-500",
