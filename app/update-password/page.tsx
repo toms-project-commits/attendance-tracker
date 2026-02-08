@@ -38,8 +38,26 @@ export default function UpdatePassword() {
       return;
     }
 
-    if (password.length < 6) {
-      setMessage({ text: "Password must be at least 6 characters long!", type: 'error' });
+    if (password.length < 8) {
+      setMessage({ text: "Password must be at least 8 characters long!", type: 'error' });
+      setLoading(false);
+      return;
+    }
+
+    if (!/[A-Z]/.test(password)) {
+      setMessage({ text: "Password must contain at least one uppercase letter!", type: 'error' });
+      setLoading(false);
+      return;
+    }
+
+    if (!/[a-z]/.test(password)) {
+      setMessage({ text: "Password must contain at least one lowercase letter!", type: 'error' });
+      setLoading(false);
+      return;
+    }
+
+    if (!/[0-9]/.test(password)) {
+      setMessage({ text: "Password must contain at least one number!", type: 'error' });
       setLoading(false);
       return;
     }
@@ -203,7 +221,10 @@ export default function UpdatePassword() {
               <ShieldCheck size={18} /> Password Requirements
             </h3>
             <ul className="text-xs font-bold text-gray-700 dark:text-gray-300 space-y-1">
-              <li>• At least 6 characters long</li>
+              <li>• At least 8 characters long</li>
+              <li>• At least one uppercase letter</li>
+              <li>• At least one lowercase letter</li>
+              <li>• At least one number</li>
               <li>• Both passwords must match</li>
             </ul>
           </div>

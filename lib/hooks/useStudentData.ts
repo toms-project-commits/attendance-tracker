@@ -12,11 +12,20 @@ export type StudentProfile = {
   weekly_offs?: number[] | null;
 };
 
+export type Semester = {
+  id: string;
+  name: string;
+  start_date: string;
+  end_date: string;
+  is_active: boolean;
+};
+
 export type Subject = {
   id: string;
   name: string;
   color_hex: string;
   target_percentage: number;
+  semester_id?: string | null;
 };
 
 export type TimetableSlot = {
@@ -26,6 +35,7 @@ export type TimetableSlot = {
   slot_type: string;
   start_time?: string | null;
   end_time?: string | null;
+  semester_id?: string | null;
 };
 
 export type Holiday = {
@@ -38,11 +48,13 @@ export type AttendanceLog = {
   status: string;
   subject_id?: string | null;
   timetable_slot_id?: string | null;
+  semester_id?: string | null;
 };
 
 type StudentDataResult = {
   user: { id: string; email?: string | null } | null;
   profile: StudentProfile | null;
+  activeSemester: Semester | null;
   subjects: Subject[];
   timetable: TimetableSlot[];
   holidays: Holiday[];
@@ -55,6 +67,7 @@ type StudentDataResult = {
 export default function useStudentData(): StudentDataResult {
   const [user, setUser] = useState<StudentDataResult['user']>(null);
   const [profile, setProfile] = useState<StudentProfile | null>(null);
+  const [activeSemester, setActiveSemester] = useState<Semester | null>(null);
   const [subjects, setSubjects] = useState<Subject[]>([]);
   const [timetable, setTimetable] = useState<TimetableSlot[]>([]);
   const [holidays, setHolidays] = useState<Holiday[]>([]);
@@ -73,17 +86,6 @@ export default function useStudentData(): StudentDataResult {
     return typeof userId === 'string' && userId.length > 0 && userId.length <= 255;
   };
 
-  const sanitizeData = <T>(data: T): T => {
-    // Basic input sanitization
-    if (typeof data === 'string') {
-      return (data as string).trim().substring(0, 1000) as T; // Limit string length
-    }
-    if (Array.isArray(data)) {
-      return (data as Array<unknown>).slice(0, 1000) as T; // Limit array size
-    }
-    return data;
-  };
-
   const fetchData = useCallback(async (forceRefresh = false) => {
     const getCachedData = (key: string) => {
       const cached = cache.current.get(key);
@@ -94,7 +96,7 @@ export default function useStudentData(): StudentDataResult {
     };
 
     const setCachedData = (key: string, data: Omit<StudentDataResult, 'loading' | 'error' | 'refresh'>) => {
-      cache.current.set(key, { data: sanitizeData(data), timestamp: Date.now() });
+      cache.current.set(key, { data, timestamp: Date.now() });
       // Clean up old cache entries
       if (cache.current.size > 100) {
         const oldestKey = cache.current.keys().next().value;
@@ -128,6 +130,7 @@ export default function useStudentData(): StudentDataResult {
       if (!authUser || !authUser.id || !validateUserId(authUser.id)) {
         setUser(null);
         setProfile(null);
+        setActiveSemester(null);
         setSubjects([]);
         setTimetable([]);
         setHolidays([]);
@@ -143,6 +146,7 @@ export default function useStudentData(): StudentDataResult {
 
       if (cachedData) {
         setProfile(cachedData.profile || null);
+        setActiveSemester(cachedData.activeSemester || null);
         setSubjects(cachedData.subjects || []);
         setTimetable(cachedData.timetable || []);
         setHolidays(cachedData.holidays || []);
@@ -170,12 +174,32 @@ export default function useStudentData(): StudentDataResult {
         }
       };
 
+      // Fetch active semester first (critical for filtering)
+      const semesterRes = await fetchWithRetry(
+        supabase
+          .from('semesters')
+          .select('*')
+          .eq('user_id', authUser.id)
+          .eq('is_active', true)
+          .maybeSingle()
+      );
+
+      const activeSem = semesterRes?.data || null;
+      const activeSemesterId = activeSem?.id || null;
+
+      // Fetch all data in parallel, filtered by active semester if it exists
       const [profileRes, subRes, timeRes, holidayRes, logRes] = await Promise.allSettled([
         fetchWithRetry(supabase.from('profiles').select('*').eq('id', authUser.id).single()),
-        fetchWithRetry(supabase.from('subjects').select('*').eq('user_id', authUser.id).order('name')),
-        fetchWithRetry(supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).order('day_of_week', { ascending: true }).order('start_time', { ascending: true })),
+        activeSemesterId 
+          ? fetchWithRetry(supabase.from('subjects').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('name'))
+          : fetchWithRetry(supabase.from('subjects').select('*').eq('user_id', authUser.id).order('name')),
+        activeSemesterId
+          ? fetchWithRetry(supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('day_of_week', { ascending: true }).order('start_time', { ascending: true }))
+          : fetchWithRetry(supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).order('day_of_week', { ascending: true }).order('start_time', { ascending: true })),
         fetchWithRetry(supabase.from('holidays').select('*').eq('user_id', authUser.id).order('date')),
-        fetchWithRetry(supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).order('date', { ascending: false }))
+        activeSemesterId
+          ? fetchWithRetry(supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('date', { ascending: false }))
+          : fetchWithRetry(supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).order('date', { ascending: false }))
       ]);
 
       // Handle partial failures gracefully
@@ -190,29 +214,32 @@ export default function useStudentData(): StudentDataResult {
 
       const [profileData, subjectsData, timetableData, holidaysData, logsData] = results;
 
-      // Validate and sanitize data
-      const sanitizedProfile = profileData.error ? null : sanitizeData(profileData.data);
-      const sanitizedSubjects = subjectsData.error ? [] : sanitizeData(subjectsData.data || []);
-      const sanitizedTimetable = timetableData.error ? [] : sanitizeData(timetableData.data || []);
-      const sanitizedHolidays = holidaysData.error ? [] : sanitizeData(holidaysData.data || []);
-      const sanitizedLogs = logsData.error ? [] : sanitizeData(logsData.data || []);
+      // Extract data (null-safe)
+      const fetchedProfile = profileData.error ? null : profileData.data;
+      const fetchedActiveSemester = activeSem || null;
+      const fetchedSubjects = subjectsData.error ? [] : (subjectsData.data || []);
+      const fetchedTimetable = timetableData.error ? [] : (timetableData.data || []);
+      const fetchedHolidays = holidaysData.error ? [] : (holidaysData.data || []);
+      const fetchedLogs = logsData.error ? [] : (logsData.data || []);
 
-      setProfile(sanitizedProfile);
-      setSubjects(sanitizedSubjects);
-      setTimetable(sanitizedTimetable);
-      setHolidays(sanitizedHolidays);
-      setLogs(sanitizedLogs);
+      setProfile(fetchedProfile);
+      setActiveSemester(fetchedActiveSemester);
+      setSubjects(fetchedSubjects);
+      setTimetable(fetchedTimetable);
+      setHolidays(fetchedHolidays);
+      setLogs(fetchedLogs);
 
       // Cache successful results only if all queries succeeded
       const allSuccessful = results.every(r => !r.error);
       if (allSuccessful) {
         setCachedData(cacheKey, {
           user: { id: authUser.id, email: authUser.email },
-          profile: sanitizedProfile,
-          subjects: sanitizedSubjects,
-          timetable: sanitizedTimetable,
-          holidays: sanitizedHolidays,
-          logs: sanitizedLogs
+          profile: fetchedProfile,
+          activeSemester: fetchedActiveSemester,
+          subjects: fetchedSubjects,
+          timetable: fetchedTimetable,
+          holidays: fetchedHolidays,
+          logs: fetchedLogs
         });
       }
 
@@ -231,15 +258,22 @@ export default function useStudentData(): StudentDataResult {
       setLoading(false);
       abortControllerRef.current = null;
     }
-  }, [CACHE_TTL]);
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     fetchData();
+    return () => {
+      if (abortControllerRef.current) {
+        abortControllerRef.current.abort();
+      }
+    };
   }, [fetchData]);
 
   return {
     user,
     profile,
+    activeSemester,
     subjects,
     timetable,
     holidays,

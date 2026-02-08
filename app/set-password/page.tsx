@@ -19,30 +19,48 @@ export default function SetPasswordPage() {
 
   useEffect(() => {
     const checkAuth = async () => {
-      const { data: { user } } = await supabase.auth.getUser();
-      
-      if (!user) {
+      try {
+        // Wait a moment for session to be fully established after OAuth
+        await new Promise(resolve => setTimeout(resolve, 300));
+
+        const { data: { user }, error: userError } = await supabase.auth.getUser();
+        
+        if (userError) {
+          console.error('User error:', userError);
+          router.push('/login');
+          return;
+        }
+
+        if (!user) {
+          router.push('/login');
+          return;
+        }
+
+        setUserEmail(user.email || '');
+
+        // Check if user has completed profile setup
+        const { data: profile, error: profileError } = await supabase
+          .from('profiles')
+          .select('semester_start')
+          .eq('id', user.id)
+          .single();
+
+        if (profileError && profileError.code !== 'PGRST116') {
+          console.error('Profile error:', profileError);
+        }
+
+        // If profile is fully set up, redirect to dashboard
+        // (Users can set password from profile page if needed)
+        if (profile?.semester_start) {
+          router.push('/dashboard');
+          return;
+        }
+
+        setCheckingAuth(false);
+      } catch (err) {
+        console.error('Auth check error:', err);
         router.push('/login');
-        return;
       }
-
-      setUserEmail(user.email || '');
-
-      // Check if user has completed profile setup
-      const { data: profile } = await supabase
-        .from('profiles')
-        .select('semester_start')
-        .eq('id', user.id)
-        .single();
-
-      // If profile is fully set up, redirect to dashboard
-      // (Users can set password from profile page if needed)
-      if (profile?.semester_start) {
-        router.push('/dashboard');
-        return;
-      }
-
-      setCheckingAuth(false);
     };
 
     checkAuth();

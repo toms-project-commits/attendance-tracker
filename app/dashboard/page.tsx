@@ -17,6 +17,7 @@ import {
   Loader2,
   PartyPopper,
   Rocket,
+  User,
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
@@ -519,10 +520,25 @@ const Dashboard = memo(function Dashboard() {
             </BrutalCard>
           </Link>
 
-          {/* Card 3: Analytics */}
-          <Link href="/analytics" className="block">
+          {/* Card 3: Calendar */}
+          <Link href="/dashboard/calendar" className="block">
             <BrutalCard className="h-full bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50">
               <div className="h-14 w-14 bg-green-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
+                <Calendar size={28} />
+              </div>
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+                Calendar
+              </h3>
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
+                View your monthly attendance calendar with color-coded dates.
+              </p>
+            </BrutalCard>
+          </Link>
+
+          {/* Card 4: Analytics */}
+          <Link href="/analytics" className="block">
+            <BrutalCard className="h-full bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50">
+              <div className="h-14 w-14 bg-orange-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <PieChart size={28} />
               </div>
               <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
@@ -533,11 +549,18 @@ const Dashboard = memo(function Dashboard() {
               </p>
             </BrutalCard>
           </Link>
+        </div>
 
-          {/* Card 4: View Proofs */}
+        {/* SECONDARY GRID - Additional Features */}
+        <h2 className="text-2xl font-black text-black dark:text-white pt-4 flex items-center gap-2">
+          <Target size={24} />
+          Additional Features
+        </h2>
+        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
+          {/* Card 5: View Proofs */}
           <Link href="/proofs" className="block">
-            <BrutalCard className="h-full bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50">
-              <div className="h-14 w-14 bg-orange-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
+            <BrutalCard className="h-full bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50">
+              <div className="h-14 w-14 bg-pink-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
                 <ImageIcon size={28} />
               </div>
               <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
@@ -567,9 +590,12 @@ const Dashboard = memo(function Dashboard() {
           </p>
         </div>
 
-        {/* Sign Out Button - Fixed at Bottom */}
-        <div className="flex justify-center pt-6 pb-8">
-          <BrutalButton onClick={handleLogout} variant="danger" className="w-full max-w-md">
+        {/* Profile & Sign Out Section */}
+        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6 pb-8">
+          <BrutalButton href="/profile" variant="default" className="w-full sm:w-auto px-8">
+            <User size={18} className="mr-2" /> My Profile
+          </BrutalButton>
+          <BrutalButton onClick={handleLogout} variant="danger" className="w-full sm:w-auto px-8">
             <LogOut size={18} className="mr-2" /> Sign Out
           </BrutalButton>
         </div>

@@ -228,11 +228,11 @@ export default function LoginPage() {
         // Keep loading indicator until deep link callback
         setMessage({ text: 'Complete sign-in in the browser, then you will be redirected back to the app', type: 'success' });
       } else {
-        // For web, use normal OAuth redirect
+        // For web, use normal OAuth redirect to callback handler
         const { error } = await supabase.auth.signInWithOAuth({
           provider: 'google',
           options: {
-            redirectTo: getRedirectUrl('/set-password')
+            redirectTo: getRedirectUrl('/auth/callback')
           }
         });
 

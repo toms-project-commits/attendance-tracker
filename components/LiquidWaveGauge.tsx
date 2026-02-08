@@ -1,6 +1,6 @@
 'use client';
 
-import { useEffect, useRef } from 'react';
+import { useEffect, useRef, memo } from 'react';
 
 interface LiquidWaveGaugeProps {
   percentage: number;
@@ -8,8 +8,9 @@ interface LiquidWaveGaugeProps {
   total: number;
 }
 
-export default function LiquidWaveGauge({ percentage, attended, total }: LiquidWaveGaugeProps) {
+function LiquidWaveGauge({ percentage, attended, total }: LiquidWaveGaugeProps) {
   const canvasRef = useRef<HTMLCanvasElement>(null);
+  const isVisibleRef = useRef(true);
 
   useEffect(() => {
     const canvas = canvasRef.current;
@@ -23,8 +24,10 @@ export default function LiquidWaveGauge({ percentage, attended, total }: LiquidW
     const radius = 60;
     let animationFrame = 0;
     let animationId: number | null = null;
+    // Clamp percentage to valid range
+    const clampedPercentage = Math.max(0, Math.min(100, percentage));
 
-    const animate = () => {
+    const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);
 
       // Draw circle background
@@ -34,7 +37,7 @@ export default function LiquidWaveGauge({ percentage, attended, total }: LiquidW
       ctx.fill();
 
       // Draw wave
-      const waveHeight = (percentage / 100) * radius * 2;
+      const waveHeight = (clampedPercentage / 100) * radius * 2;
       const waveY = centerY + radius - waveHeight;
       const waveAmplitude = 4;
       const waveFrequency = 0.02;
@@ -66,19 +69,37 @@ export default function LiquidWaveGauge({ percentage, attended, total }: LiquidW
       ctx.font = 'bold 36px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(`${Math.round(percentage)}%`, centerX, centerY);
+      ctx.fillText(`${Math.round(clampedPercentage)}%`, centerX, centerY);
 
       ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif';
       ctx.fillStyle = '#64748b';
       ctx.fillText(`${attended}/${total} classes`, centerX, centerY + 30);
 
       animationFrame++;
+    };
+
+    const animate = () => {
+      if (!isVisibleRef.current) {
+        animationId = null;
+        return;
+      }
+      draw();
       animationId = requestAnimationFrame(animate);
     };
 
+    // Pause animation when tab is hidden
+    const handleVisibility = () => {
+      isVisibleRef.current = !document.hidden;
+      if (isVisibleRef.current && animationId === null) {
+        animate();
+      }
+    };
+
+    document.addEventListener('visibilitychange', handleVisibility);
     animate();
 
     return () => {
+      document.removeEventListener('visibilitychange', handleVisibility);
       if (animationId !== null) {
         cancelAnimationFrame(animationId);
       }
@@ -94,3 +115,5 @@ export default function LiquidWaveGauge({ percentage, attended, total }: LiquidW
     />
   );
 }
+
+export default memo(LiquidWaveGauge);
