@@ -36,17 +36,10 @@ export default function FriendRequestsPage() {
         return;
       }
 
-      // Load received requests (others sent to me)
+      // Load received requests using the view (avoids broken FK joins to auth.users)
       const { data: received, error: receivedError } = await supabase
-        .from('friendship_requests')
-        .select(`
-          id,
-          requester_id,
-          recipient_id,
-          created_at,
-          status,
-          requester:profiles!friendship_requests_requester_id_fkey(username, full_name)
-        `)
+        .from('friend_requests_with_profiles')
+        .select('*')
         .eq('recipient_id', user.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -54,34 +47,24 @@ export default function FriendRequestsPage() {
       if (receivedError) {
         console.error('Error loading received requests:', receivedError);
       } else {
-        const formattedReceived = (received || []).map(r => {
-          const requesterData = r.requester as any;
-          return {
-            id: r.id,
-            sender_id: r.requester_id,
-            receiver_id: r.recipient_id,
-            sender_username: Array.isArray(requesterData) ? requesterData[0]?.username : requesterData?.username || 'unknown',
-            sender_full_name: Array.isArray(requesterData) ? requesterData[0]?.full_name : requesterData?.full_name || null,
-            receiver_username: '',
-            receiver_full_name: null,
-            created_at: r.created_at,
-            status: r.status
-          };
-        });
+        const formattedReceived = (received || []).map(r => ({
+          id: r.id,
+          sender_id: r.requester_id,
+          receiver_id: r.recipient_id,
+          sender_username: r.requester_username || 'unknown',
+          sender_full_name: r.requester_full_name || null,
+          receiver_username: r.recipient_username || '',
+          receiver_full_name: r.recipient_full_name || null,
+          created_at: r.created_at,
+          status: r.status
+        }));
         setReceivedRequests(formattedReceived);
       }
 
-      // Load sent requests (I sent to others)
+      // Load sent requests using the view
       const { data: sent, error: sentError } = await supabase
-        .from('friendship_requests')
-        .select(`
-          id,
-          requester_id,
-          recipient_id,
-          created_at,
-          status,
-          recipient:profiles!friendship_requests_recipient_id_fkey(username, full_name)
-        `)
+        .from('friend_requests_with_profiles')
+        .select('*')
         .eq('requester_id', user.id)
         .eq('status', 'pending')
         .order('created_at', { ascending: false });
@@ -89,20 +72,17 @@ export default function FriendRequestsPage() {
       if (sentError) {
         console.error('Error loading sent requests:', sentError);
       } else {
-        const formattedSent = (sent || []).map(r => {
-          const recipientData = r.recipient as any;
-          return {
-            id: r.id,
-            sender_id: r.requester_id,
-            receiver_id: r.recipient_id,
-            sender_username: '',
-            sender_full_name: null,
-            receiver_username: Array.isArray(recipientData) ? recipientData[0]?.username : recipientData?.username || 'unknown',
-            receiver_full_name: Array.isArray(recipientData) ? recipientData[0]?.full_name : recipientData?.full_name || null,
-            created_at: r.created_at,
-            status: r.status
-          };
-        });
+        const formattedSent = (sent || []).map(r => ({
+          id: r.id,
+          sender_id: r.requester_id,
+          receiver_id: r.recipient_id,
+          sender_username: r.requester_username || '',
+          sender_full_name: r.requester_full_name || null,
+          receiver_username: r.recipient_username || 'unknown',
+          receiver_full_name: r.recipient_full_name || null,
+          created_at: r.created_at,
+          status: r.status
+        }));
         setSentRequests(formattedSent);
       }
 
