@@ -44,6 +44,7 @@ export default function MarkAttendancePage() {
   const [selectedClassIndex, setSelectedClassIndex] = useState<number | null>(null);
   const [viewingProof, setViewingProof] = useState<string | null>(null);
   const [previewingProofFile, setPreviewingProofFile] = useState<File | null>(null);
+  const [previewObjectUrl, setPreviewObjectUrl] = useState<string | null>(null);
   const [warningDismissed, setWarningDismissed] = useState(() => {
     if (typeof window !== 'undefined') {
       return localStorage.getItem('proof_warning_dismissed') === 'true';
@@ -242,14 +243,18 @@ export default function MarkAttendancePage() {
   };
 
   const handleSave = async () => {
+    // Guard: prevent concurrent saves from double-click
+    if (saving) return;
     setSaving(true);
-    const { data: { user } } = await supabase.auth.getUser();
-    if (!user) {
-      setSaving(false);
-      return;
-    }
 
     try {
+      const { data: { user }, error: authError } = await supabase.auth.getUser();
+      if (authError || !user) {
+        setSaving(false);
+        if (authError) alert('Authentication error. Please log in again.');
+        return;
+      }
+
       // Save proof images to local storage (IndexedDB)
       const logsWithProofs = await Promise.all(
         classes
@@ -260,29 +265,19 @@ export default function MarkAttendancePage() {
             // If there's a new proof file, save it to persistent storage
             if (c.proof_file) {
               try {
-                console.log(`[PROOF] Attempting to save proof for ${c.subject_name}...`);
                 const proofId = await saveProofPersistent(
                   user.id,
                   date,
                   c.subject_id,
                   c.subject_name,
                   c.proof_file,
-                  c.start_time // Pass start_time to differentiate multiple classes of same subject
+                  c.start_time
                 );
-                // Store proof ID as the URL
                 proofUrl = `proof://${proofId}`;
-                console.log(`[PROOF SUCCESS] Proof saved successfully for ${c.subject_name}, ID: ${proofId}`);
-              } catch (error: any) {
+              } catch (error: unknown) {
+                const errorDetail = error instanceof Error ? error.message : 'Unknown error';
                 console.error(`[PROOF ERROR] Proof storage error for ${c.subject_name}:`, error);
-                console.error('Full error details:', {
-                  message: error.message,
-                  name: error.name,
-                  stack: error.stack
-                });
-                
-                // Continue without proof - don't block attendance save
-                const errorDetail = error.message || 'Unknown error';
-                alert(`WARNING: Could not save proof for ${c.subject_name}\n\nReason: ${errorDetail}\n\nYour attendance will still be saved, but without the proof image.\n\nTip: Check browser console (F12) for more details.`);
+                alert(`WARNING: Could not save proof for ${c.subject_name}\n\nReason: ${errorDetail}\n\nYour attendance will still be saved, but without the proof image.`);
                 proofUrl = undefined;
               }
             }
@@ -292,15 +287,28 @@ export default function MarkAttendancePage() {
               subject_id: c.subject_id,
               date: date,
               status: c.status,
-              timetable_slot_id: c.is_extra ? null : c.timetable_id,
+              timetable_slot_id: c.is_extra ? null : (c.timetable_id || null),
               start_time: c.is_extra ? c.start_time : null,
               end_time: c.is_extra ? c.end_time : null,
-              proof_url: proofUrl || null, // Include proof_url in database insert
+              proof_url: proofUrl || null,
             };
           })
       );
 
-      // First, delete existing attendance for this date
+      // --- ATOMIC UPSERT STRATEGY ---
+      // Snapshot existing logs BEFORE delete so we can restore on insert failure.
+      const { data: existingLogs, error: snapshotError } = await supabase
+        .from('attendance_logs')
+        .select('*')
+        .eq('user_id', user.id)
+        .eq('date', date);
+
+      if (snapshotError) {
+        console.error('Snapshot error:', snapshotError);
+        throw new Error(`Failed to read existing attendance: ${snapshotError.message}`);
+      }
+
+      // Delete existing attendance for this date
       const { error: deleteError } = await supabase
         .from('attendance_logs')
         .delete()
@@ -312,21 +320,35 @@ export default function MarkAttendancePage() {
         throw new Error(`Failed to clear existing attendance: ${deleteError.message}`);
       }
 
-      // Then insert new logs if any
+      // Insert new logs — if this fails, attempt to restore the snapshot
       if (logsWithProofs.length > 0) {
         const { error: insertError } = await supabase
           .from('attendance_logs')
           .insert(logsWithProofs);
-        
+
         if (insertError) {
           console.error('Insert error:', insertError);
+
+          // --- ROLLBACK: restore the snapshot ---
+          if (existingLogs && existingLogs.length > 0) {
+            const restorePayload = existingLogs.map(({ id, created_at, ...rest }) => rest);
+            const { error: restoreError } = await supabase
+              .from('attendance_logs')
+              .insert(restorePayload);
+            if (restoreError) {
+              console.error('CRITICAL: Rollback also failed:', restoreError);
+              alert('CRITICAL ERROR: Your previous attendance could not be restored. Please re-enter your attendance for this date.');
+            } else {
+              alert('Save failed, but your previous attendance has been restored. Please try again.');
+            }
+          }
+
           throw new Error(`Failed to save attendance: ${insertError.message}`);
         }
       }
-      
-      // Add cache-busting timestamp to force data refresh
+
       router.push('/dashboard?refresh=' + Date.now());
-      
+
     } catch (err) {
       const errorMessage = err instanceof Error ? err.message : 'An unexpected error occurred';
       console.error('Save attendance error:', err);
@@ -339,6 +361,11 @@ export default function MarkAttendancePage() {
   const addExtraClass = useCallback(() => {
     if (!selectedSubjectId) {
       alert('Please select a subject');
+      return;
+    }
+
+    if (extraEndTime <= extraStartTime) {
+      alert('End time must be after start time');
       return;
     }
 
@@ -797,6 +824,9 @@ export default function MarkAttendancePage() {
                       onClick={() => {
                         // If there's a new proof file (not yet saved), preview it directly
                         if (cls.proof_file) {
+                          // Create objectURL once, store in state for proper lifecycle management
+                          const url = URL.createObjectURL(cls.proof_file);
+                          setPreviewObjectUrl(url);
                           setPreviewingProofFile(cls.proof_file);
                         } else if (cls.proof_url) {
                           handleViewProof(cls.proof_url);
@@ -866,8 +896,12 @@ export default function MarkAttendancePage() {
       )}
 
       {/* PREVIEW PROOF FILE MODAL (for newly captured proofs before save) */}
-      {previewingProofFile && (
-        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onClick={() => setPreviewingProofFile(null)}>
+      {previewingProofFile && previewObjectUrl && (
+        <div className="fixed inset-0 bg-black/90 flex items-center justify-center z-50 p-4" onClick={() => {
+          if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+          setPreviewObjectUrl(null);
+          setPreviewingProofFile(null);
+        }}>
           <div className="border-[3px] border-white bg-slate-900 w-full max-w-4xl shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] max-h-[90vh] overflow-auto" onClick={(e) => e.stopPropagation()}>
             <div className="border-b-[3px] border-white p-4 flex items-center justify-between bg-purple-500">
               <div>
@@ -878,7 +912,11 @@ export default function MarkAttendancePage() {
                 <p className="text-sm text-white/80 font-semibold">Not yet saved - will be saved when you confirm attendance</p>
               </div>
               <button
-                onClick={() => setPreviewingProofFile(null)}
+                onClick={() => {
+                  if (previewObjectUrl) URL.revokeObjectURL(previewObjectUrl);
+                  setPreviewObjectUrl(null);
+                  setPreviewingProofFile(null);
+                }}
                 className="p-2 border-[2px] border-white bg-red-500 text-white hover:bg-red-600 transition-colors"
                 aria-label="Close"
               >
@@ -887,14 +925,9 @@ export default function MarkAttendancePage() {
             </div>
             <div className="p-4">
               <img
-                src={URL.createObjectURL(previewingProofFile)}
+                src={previewObjectUrl}
                 alt="Proof preview"
                 className="w-full h-auto border-[2px] border-white"
-                onLoad={(e) => {
-                  // Revoke the object URL after the image loads to free memory
-                  const target = e.target as HTMLImageElement;
-                  URL.revokeObjectURL(target.src);
-                }}
               />
             </div>
           </div>

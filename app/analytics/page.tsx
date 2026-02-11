@@ -16,33 +16,10 @@ import {
   Target
 } from 'lucide-react';
 import Link from 'next/link';
-import {
-  eachDayOfInterval,
-  isSunday,
-  parseISO,
-  isBefore,
-  startOfToday,
-  format,
-  startOfMonth,
-  getDay as getDayOfWeek,
-  addDays
-} from 'date-fns';
+import { format, parseISO } from 'date-fns';
 import { clsx } from 'clsx';
 import useStudentData from '@/lib/hooks/useStudentData';
-
-// --- TYPES ---
-type SubjectStats = {
-  id: string;
-  name: string;
-  color: string;
-  target: number;
-  totalClasses: number;
-  attended: number;
-  bunked: number;
-  percentage: number;
-  status: 'Safe' | 'Danger' | 'On Track';
-  bunkMsg: string;
-};
+import { calculateAttendance, type SubjectStats } from '@/lib/utils/attendanceCalculations';
 
 export default function AnalyticsPage() {
   const router = useRouter();
@@ -56,186 +33,30 @@ export default function AnalyticsPage() {
     }
   }, [dataLoading, router, user]);
 
+  // Use centralized calculation logic - ensures consistency with Dashboard
   const analyticsData = useMemo(() => {
-    if (!profile) {
-      return {
-        semesterInfo: { start: '', daysElapsed: 0 },
-        overall: { attended: 0, total: 0, percentage: 100 },
-        stats: [] as SubjectStats[]
-      };
-    }
-
-    if (!profile.semester_start) {
-      return {
-        semesterInfo: { start: 'Not Started', daysElapsed: 0 },
-        overall: { attended: 0, total: 0, percentage: 100 },
-        stats: [] as SubjectStats[]
-      };
-    }
-
-    const today = startOfToday();
-    const startDate = parseISO(profile.semester_start);
-
-    if (isBefore(today, startDate)) {
-      return {
-        semesterInfo: { start: 'Not Started', daysElapsed: 0 },
-        overall: { attended: 0, total: 0, percentage: 100 },
-        stats: [] as SubjectStats[]
-      };
-    }
-
-    const daysInterval = eachDayOfInterval({ start: startDate, end: today });
-    const subjectMap: Record<string, { total: number; attended: number; bunked: number }> = {};
-
-    subjects.forEach((s) => {
-      subjectMap[s.id] = { total: 0, attended: 0, bunked: 0 };
-    });
-
-    daysInterval.forEach((dayObj) => {
-      const dateStr = format(dayObj, 'yyyy-MM-dd');
-
-      if (isSunday(dayObj)) return;
-
-      const isHoliday = holidays.some((holiday) => holiday.date && holiday.date.substring(0, 10) === dateStr);
-      if (isHoliday) return;
-
-      const dayOfWeekIndex = getDayOfWeek(dayObj);
-      if (dayOfWeekIndex === 6) {
-        const firstOfMonth = startOfMonth(dayObj);
-        let firstSaturday: Date | null = null;
-
-        for (let i = 0; i < 7; i++) {
-          const candidateDate = addDays(firstOfMonth, i);
-          if (getDayOfWeek(candidateDate) === 6) {
-            firstSaturday = candidateDate;
-            break;
-          }
-        }
-
-        if (firstSaturday) {
-          const daysDiff = Math.floor((dayObj.getTime() - firstSaturday.getTime()) / (1000 * 60 * 60 * 24));
-          const weekNum = Math.floor(daysDiff / 7) + 1;
-          if (weekNum >= 1 && weekNum <= 5 && profile.saturday_offs && profile.saturday_offs.includes(weekNum)) {
-            return;
-          }
-        }
+    const result = calculateAttendance(profile, subjects, timetable, holidays, logs);
+    
+    // Calculate semester info
+    let semesterInfo = { start: 'Not Started', daysElapsed: 0 };
+    if (profile?.semester_start) {
+      try {
+        const startDate = parseISO(profile.semester_start);
+        semesterInfo = {
+          start: format(startDate, 'MMM d, yyyy'),
+          daysElapsed: Math.floor((new Date().getTime() - startDate.getTime()) / (1000 * 60 * 60 * 24))
+        };
+      } catch {
+        // Keep default values
       }
-
-      const dbDay = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
-      const classesForDay = timetable.filter((slot) =>
-        slot.day_of_week === dbDay && slot.slot_type === 'SUBJECT'
-      );
-
-      const daysLogs = logs.filter((log) => log.date && typeof log.date === 'string' && log.date.substring(0, 10) === dateStr);
-
-      classesForDay.forEach((cls) => {
-        if (!subjectMap[cls.subject_id]) return;
-
-        // Match log by timetable_slot_id for accuracy (handles multiple same subjects on same day)
-        const logIndex = daysLogs.findIndex((log) => log.timetable_slot_id === cls.id);
-
-        let log = null;
-        if (logIndex !== -1) {
-          log = daysLogs[logIndex];
-          daysLogs.splice(logIndex, 1);
-        }
-
-        if (log?.status === 'CANCELLED') return;
-
-        subjectMap[cls.subject_id].total++;
-
-        if (log?.status === 'PRESENT') {
-          subjectMap[cls.subject_id].attended++;
-        } else {
-          subjectMap[cls.subject_id].bunked++;
-        }
-      });
-
-      daysLogs.forEach((log) => {
-        if (!log.subject_id || !subjectMap[log.subject_id]) return;
-
-        if (log.status === 'CANCELLED') return;
-
-        subjectMap[log.subject_id].total++;
-
-        if (log.status === 'PRESENT') {
-          subjectMap[log.subject_id].attended++;
-        } else {
-          subjectMap[log.subject_id].bunked++;
-        }
-      });
-    });
-
-    let grandTotal = 0;
-    let grandAttended = 0;
-
-    const finalStats: SubjectStats[] = subjects.map((sub) => {
-      const { total, attended, bunked } = subjectMap[sub.id] ?? { total: 0, attended: 0, bunked: 0 };
-      grandTotal += total;
-      grandAttended += attended;
-
-      const percentage = total === 0 ? 100 : (attended / total) * 100;
-      const target = sub.target_percentage;
-
-      let bunkMsg = '';
-      let status: SubjectStats['status'] = 'On Track';
-
-      if (total === 0) {
-        bunkMsg = 'No classes scheduled yet.';
-        status = 'Safe';
-      } else if (percentage >= target) {
-        const maxTotalAllowed = attended / (target / 100);
-        const maxBunks = Math.floor(maxTotalAllowed - total);
-
-        if (maxBunks > 0) {
-          bunkMsg = `You can miss up to ${maxBunks} more class${maxBunks === 1 ? '' : 'es'} and still meet your ${target}% target.`;
-          status = 'Safe';
-        } else {
-          bunkMsg = `You're at ${percentage.toFixed(0)}% (target: ${target}%). Keep attending to maintain your target.`;
-          status = 'Safe';
-        }
-      } else {
-        const numerator = (target / 100 * total) - attended;
-        const denominator = 1 - (target / 100);
-        const mustAttend = denominator === 0 ? 1 : Math.ceil(numerator / denominator);
-
-        if (mustAttend === 1) {
-          bunkMsg = `Attend the next class to reach your ${target}% target.`;
-        } else {
-          bunkMsg = `Attend the next ${mustAttend} classes to reach your ${target}% target.`;
-        }
-        status = 'Danger';
-      }
-
-      return {
-        id: sub.id,
-        name: sub.name,
-        color: sub.color_hex,
-        target,
-        totalClasses: total,
-        attended,
-        bunked,
-        percentage,
-        status,
-        bunkMsg
-      };
-    });
-
-    const overallPct = grandTotal === 0 ? 100 : (grandAttended / grandTotal) * 100;
+    }
 
     return {
-      semesterInfo: {
-        start: format(startDate, 'MMM d, yyyy'),
-        daysElapsed: daysInterval.length
-      },
-      overall: {
-        attended: grandAttended,
-        total: grandTotal,
-        percentage: overallPct
-      },
-      stats: finalStats
+      semesterInfo,
+      overall: result.overall,
+      stats: result.subjectStats
     };
-  }, [holidays, logs, profile, subjects, timetable]);
+  }, [profile, subjects, timetable, holidays, logs]);
 
   const sortedStats = useMemo(() => {
     const sorted = [...analyticsData.stats];
@@ -288,7 +109,7 @@ export default function AnalyticsPage() {
             </Link>
             <div className="flex-1">
               <h1 className="text-xl md:text-2xl font-black text-black dark:text-white">
-                📊 Analytics
+                Analytics
               </h1>
               {analyticsData.semesterInfo.start && analyticsData.semesterInfo.start !== 'Not Started' && (
                 <p className="text-xs font-semibold text-gray-600 dark:text-gray-400">
@@ -337,13 +158,13 @@ export default function AnalyticsPage() {
               )}>
                 {isSafe ? (
                   <>
-                    <ShieldCheck size={20} />
-                    YOU&apos;RE SAFE! ✅
+                  <ShieldCheck size={20} />
+                    YOU&apos;RE SAFE
                   </>
                 ) : (
                   <>
-                    <AlertTriangle size={20} />
-                    AT RISK! ⚠️
+                  <AlertTriangle size={20} />
+                    AT RISK
                   </>
                 )}
               </div>
@@ -435,7 +256,7 @@ export default function AnalyticsPage() {
         {/* SUBJECT BREAKDOWN */}
         <div className="space-y-4">
           <div className="flex items-center justify-between flex-wrap gap-3">
-            <h2 className="text-xl font-black text-black dark:text-white"> Subject Breakdown</h2>
+            <h2 className="text-xl font-black text-black dark:text-white">Subject Breakdown</h2>
             
             {/* Sort Buttons */}
             <div className="flex gap-2">
@@ -558,7 +379,7 @@ export default function AnalyticsPage() {
                 <Link 
                   href="/subjects"
                   className={clsx(
-                    "inline-block mt-4 px-6 py-3 border-[3px] border-black bg-blue-500 text-white font-black",
+                    "inline-flex items-center gap-2 mt-4 px-6 py-3 border-[3px] border-black bg-blue-500 text-white font-black",
                     "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
                     "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
                     "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
@@ -566,7 +387,8 @@ export default function AnalyticsPage() {
                     "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
                   )}
                 >
-                  ➕ Add Subjects
+                  <Target size={18} />
+                  Add Subjects
                 </Link>
               </div>
             )}

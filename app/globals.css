@@ -1,6 +1,7 @@
 @import "tailwindcss";
 
 /* Neo-Brutalism Theme Configuration for Tailwind v4 */
+/* stylelint-disable-next-line at-rule-no-unknown */
 @theme {
   /* Custom box shadows - hard shadows with no blur */
   --shadow-brutal: 4px 4px 0px 0px rgba(0,0,0,1);

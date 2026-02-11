@@ -23,16 +23,22 @@ export default function ForgotPassword() {
     setLoading(true);
     setMessage(null);
 
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: getRedirectUrl('/update-password'),
-    });
+    try {
+      const { error } = await supabase.auth.resetPasswordForEmail(email, {
+        redirectTo: getRedirectUrl('/update-password'),
+      });
 
-    if (error) {
-      setMessage({ text: error.message, type: 'error' });
-    } else {
-      setMessage({ text: "Check your email for the password reset link.", type: 'success' });
+      if (error) {
+        setMessage({ text: error.message, type: 'error' });
+      } else {
+        setMessage({ text: "Check your email for the password reset link.", type: 'success' });
+      }
+    } catch (err) {
+      const msg = err instanceof Error ? err.message : 'An unexpected error occurred. Please try again.';
+      setMessage({ text: msg, type: 'error' });
+    } finally {
+      setLoading(false);
     }
-    setLoading(false);
   };
 
   return (

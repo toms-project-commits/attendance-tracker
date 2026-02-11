@@ -17,8 +17,10 @@ export const getRedirectUrl = (path: string = ''): string => {
     const origin = window.location.origin;
     
     // Check if we're on a native platform (Capacitor uses capacitor:// or localhost schemes)
+    // Use exact match for localhost to avoid matching domains like "myapp.localhost.com"
     const isNativeScheme = origin.includes('capacitor://') || 
-                          origin.includes('localhost') ||
+                          origin === 'http://localhost' ||
+                          origin.startsWith('http://localhost:') ||
                           origin === 'null' ||
                           origin === '';
     

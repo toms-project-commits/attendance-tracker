@@ -17,8 +17,10 @@ export default function UpdatePassword() {
 
   useEffect(() => {
     const checkSession = async () => {
-      const { data: { session } } = await supabase.auth.getSession();
-      if (!session) {
+      // Use getUser() instead of getSession() — getUser() validates the token
+      // server-side, while getSession() only reads (potentially stale) localStorage.
+      const { data: { user }, error } = await supabase.auth.getUser();
+      if (error || !user) {
         router.push('/login');
         return;
       }

@@ -156,12 +156,13 @@ export default function useStudentData(): StudentDataResult {
       }
 
       // Parallel requests with timeout and error handling
+      // Accept a factory function so each retry creates a fresh query/promise.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
-      const fetchWithRetry = async (query: any, retries = 3): Promise<any> => {
+      const fetchWithRetry = async (queryFactory: () => PromiseLike<any>, retries = 3): Promise<any> => {
         for (let i = 0; i < retries; i++) {
           try {
             const result = await Promise.race([
-              query,
+              queryFactory(),
               new Promise((_, reject) =>
                 setTimeout(() => reject(new Error('Request timeout')), 10000)
               )
@@ -169,13 +170,13 @@ export default function useStudentData(): StudentDataResult {
             return result;
           } catch (err) {
             if (i === retries - 1) throw err;
-            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000)); // Exponential backoff
+            await new Promise(resolve => setTimeout(resolve, Math.pow(2, i) * 1000));
           }
         }
       };
 
       // Fetch active semester first (critical for filtering)
-      const semesterRes = await fetchWithRetry(
+      const semesterRes = await fetchWithRetry(() =>
         supabase
           .from('semesters')
           .select('*')
@@ -189,17 +190,17 @@ export default function useStudentData(): StudentDataResult {
 
       // Fetch all data in parallel, filtered by active semester if it exists
       const [profileRes, subRes, timeRes, holidayRes, logRes] = await Promise.allSettled([
-        fetchWithRetry(supabase.from('profiles').select('*').eq('id', authUser.id).single()),
+        fetchWithRetry(() => supabase.from('profiles').select('*').eq('id', authUser.id).single()),
         activeSemesterId 
-          ? fetchWithRetry(supabase.from('subjects').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('name'))
-          : fetchWithRetry(supabase.from('subjects').select('*').eq('user_id', authUser.id).order('name')),
+          ? fetchWithRetry(() => supabase.from('subjects').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('name'))
+          : fetchWithRetry(() => supabase.from('subjects').select('*').eq('user_id', authUser.id).order('name')),
         activeSemesterId
-          ? fetchWithRetry(supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('day_of_week', { ascending: true }).order('start_time', { ascending: true }))
-          : fetchWithRetry(supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).order('day_of_week', { ascending: true }).order('start_time', { ascending: true })),
-        fetchWithRetry(supabase.from('holidays').select('*').eq('user_id', authUser.id).order('date')),
+          ? fetchWithRetry(() => supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('day_of_week', { ascending: true }).order('start_time', { ascending: true }))
+          : fetchWithRetry(() => supabase.from('timetable_slots').select('*').eq('user_id', authUser.id).order('day_of_week', { ascending: true }).order('start_time', { ascending: true })),
+        fetchWithRetry(() => supabase.from('holidays').select('*').eq('user_id', authUser.id).order('date')),
         activeSemesterId
-          ? fetchWithRetry(supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('date', { ascending: false }))
-          : fetchWithRetry(supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).order('date', { ascending: false }))
+          ? fetchWithRetry(() => supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('date', { ascending: false }))
+          : fetchWithRetry(() => supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).order('date', { ascending: false }))
       ]);
 
       // Handle partial failures gracefully

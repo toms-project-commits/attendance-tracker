@@ -1,8 +1,8 @@
 'use client';
-import { useCallback, useEffect, useState } from 'react';
+import { useCallback, useEffect, useState, useMemo } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
-import { ArrowLeft, Plus, Trash2, Clock, Coffee, Trophy, Library, Edit2 } from 'lucide-react';
+import { ArrowLeft, Plus, Trash2, Clock, Coffee, Trophy, Library, Edit2, AlertTriangle } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
@@ -327,6 +327,56 @@ export default function TimetablePage() {
 
   const daySlots = slots.filter(s => s.day_of_week === activeDay);
 
+  // Calculate weekly statistics
+  const weeklyStats = useMemo(() => {
+    const stats = DAYS.map((day, idx) => {
+      const dayNum = idx + 1;
+      const daySlots = slots.filter(s => s.day_of_week === dayNum);
+      const subjectSlots = daySlots.filter(s => s.slot_type === 'SUBJECT');
+      const breakSlots = daySlots.filter(s => s.slot_type !== 'SUBJECT');
+      return {
+        day,
+        dayNum,
+        total: daySlots.length,
+        subjects: subjectSlots.length,
+        breaks: breakSlots.length
+      };
+    });
+    
+    const totalClasses = stats.reduce((sum, s) => sum + s.subjects, 0);
+    const totalSlots = stats.reduce((sum, s) => sum + s.total, 0);
+    
+    return { daily: stats, totalClasses, totalSlots };
+  }, [slots]);
+
+  // Detect conflicts (overlapping time slots on same day)
+  const conflicts = useMemo(() => {
+    const conflictList: Array<{ day: string; slots: string[] }> = [];
+    
+    DAYS.forEach((day, idx) => {
+      const dayNum = idx + 1;
+      const daySlots = slots.filter(s => s.day_of_week === dayNum).sort((a, b) => 
+        a.start_time.localeCompare(b.start_time)
+      );
+      
+      for (let i = 0; i < daySlots.length - 1; i++) {
+        const current = daySlots[i];
+        const next = daySlots[i + 1];
+        
+        // Check if slots overlap
+        if (current.end_time > next.start_time) {
+          const conflictingSlots = [
+            `${current.start_time}-${current.end_time}`,
+            `${next.start_time}-${next.end_time}`
+          ];
+          conflictList.push({ day, slots: conflictingSlots });
+        }
+      }
+    });
+    
+    return conflictList;
+  }, [slots]);
+
   return (
     <div className="min-h-screen flex flex-col" style={{ background: 'var(--background)' }}>
       
@@ -392,14 +442,14 @@ export default function TimetablePage() {
             {DAYS.map((day, index) => {
               const dayNum = index + 1;
               const isActive = activeDay === dayNum;
-              const hasClasses = slots.some(s => s.day_of_week === dayNum);
+              const dayStats = weeklyStats.daily[index];
               
               return (
                 <button
                   key={day}
                   onClick={() => setActiveDay(dayNum)}
                   className={clsx(
-                    "px-4 py-2 border-[3px] border-black font-black text-sm whitespace-nowrap transition-all duration-150",
+                    "px-4 py-2 border-[3px] border-black font-black text-sm whitespace-nowrap transition-all duration-150 flex flex-col items-center gap-1",
                     isActive 
                       ? "bg-blue-500 text-white shadow-none translate-x-[2px] translate-y-[2px]" 
                       : "bg-white text-black shadow-[3px_3px_0px_0px_rgba(0,0,0,1)] hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
@@ -411,12 +461,66 @@ export default function TimetablePage() {
                 >
                   <span className="hidden md:inline">{day}</span>
                   <span className="md:hidden">{SHORT_DAYS[index]}</span>
-                  {hasClasses && !isActive && <span className="ml-1 w-2 h-2 bg-blue-500 rounded-full inline-block" />}
+                  {dayStats.subjects > 0 && (
+                    <span className={clsx(
+                      "text-xs px-1.5 py-0.5 rounded-full",
+                      isActive ? "bg-white text-blue-500" : "bg-blue-500 text-white"
+                    )}>
+                      {dayStats.subjects}
+                    </span>
+                  )}
                 </button>
               );
             })}
           </div>
         </div>
+      </div>
+
+      {/* WEEKLY SUMMARY STATS */}
+      <div className="p-4 max-w-3xl mx-auto w-full">
+        <div className="border-[3px] border-black bg-white dark:bg-slate-800 dark:border-white p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] mb-4">
+          <h3 className="text-lg font-black text-black dark:text-white mb-3">Weekly Overview</h3>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <div className="text-center">
+              <div className="text-3xl font-black text-blue-600">{weeklyStats.totalClasses}</div>
+              <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Classes/Week</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-black text-purple-600">{weeklyStats.totalSlots}</div>
+              <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Total Slots</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-black text-green-600">{daySlots.filter(s => s.slot_type === 'SUBJECT').length}</div>
+              <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Today&apos;s Classes</div>
+            </div>
+            <div className="text-center">
+              <div className="text-3xl font-black text-orange-600">{Math.round((weeklyStats.totalClasses / 5) * 10) / 10}</div>
+              <div className="text-xs font-bold text-gray-600 dark:text-gray-400 uppercase">Avg/Weekday</div>
+            </div>
+          </div>
+        </div>
+
+        {/* CONFLICT WARNING */}
+        {conflicts.length > 0 && (
+          <div className="border-[3px] border-black bg-red-100 dark:bg-red-900/30 p-4 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] mb-4">
+            <div className="flex items-start gap-3">
+              <AlertTriangle className="text-red-600 shrink-0" size={24} />
+              <div>
+                <h3 className="font-black text-red-600 dark:text-red-400 mb-2">Schedule Conflicts Detected</h3>
+                <p className="text-sm font-semibold text-red-800 dark:text-red-300 mb-2">
+                  You have overlapping time slots on the following days:
+                </p>
+                <ul className="text-xs font-bold text-red-700 dark:text-red-400 space-y-1">
+                  {conflicts.map((conflict: { day: string; slots: string[] }, idx: number) => (
+                    <li key={idx}>
+                      • {conflict.day}: {conflict.slots.join(' overlaps with ')}
+                    </li>
+                  ))}
+                </ul>
+              </div>
+            </div>
+          </div>
+        )}
       </div>
 
       {/* TIMELINE VIEW */}

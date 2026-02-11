@@ -24,8 +24,9 @@ function LiquidWaveGauge({ percentage, attended, total }: LiquidWaveGaugeProps) 
     const radius = 60;
     let animationFrame = 0;
     let animationId: number | null = null;
-    // Clamp percentage to valid range
-    const clampedPercentage = Math.max(0, Math.min(100, percentage));
+    // Guard against NaN/Infinity, then clamp to valid range
+    const safePercentage = Number.isFinite(percentage) ? percentage : 0;
+    const clampedPercentage = Math.max(0, Math.min(100, safePercentage));
 
     const draw = () => {
       ctx.clearRect(0, 0, canvas.width, canvas.height);

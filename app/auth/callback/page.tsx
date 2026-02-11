@@ -9,57 +9,94 @@ export default function AuthCallbackPage() {
   const [error, setError] = useState<string | null>(null);
 
   useEffect(() => {
-    const handleCallback = async () => {
-      try {
-        // Wait a moment for the URL to be fully loaded
-        await new Promise(resolve => setTimeout(resolve, 100));
-
-        // Check if we have a session (this will handle the OAuth tokens in the URL)
-        const { data: { session }, error: sessionError } = await supabase.auth.getSession();
-        
-        if (sessionError) {
-          console.error('Session error:', sessionError);
-          setError(sessionError.message);
-          setTimeout(() => router.push('/login'), 2000);
-          return;
-        }
-
-        if (!session) {
-          console.error('No session found after OAuth callback');
-          setError('Authentication failed. Please try again.');
-          setTimeout(() => router.push('/login'), 2000);
-          return;
-        }
-
-        // Session established successfully
-        const user = session.user;
-
-        // Check if user has completed profile setup
-        const { data: profile, error: profileError } = await supabase
-          .from('profiles')
-          .select('semester_start')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError && profileError.code !== 'PGRST116') {
-          console.error('Profile error:', profileError);
-        }
-
-        // Redirect based on setup status
-        if (profile?.semester_start) {
-          router.push('/dashboard');
-        } else {
-          router.push('/set-password');
-        }
-      } catch (err) {
-        console.error('Callback error:', err);
-        setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+    let isMounted = true;
+    // Timeout guard: if no auth event fires within 15s, redirect to login
+    const timeoutId = setTimeout(() => {
+      if (isMounted && !error) {
+        setError('Authentication timed out. Please try again.');
         setTimeout(() => router.push('/login'), 2000);
       }
-    };
+    }, 15000);
 
-    handleCallback();
-  }, [router]);
+    // Listen for the Supabase auth state change instead of an arbitrary 100ms delay.
+    // The PKCE flow fires SIGNED_IN once the code exchange completes.
+    const { data: { subscription } } = supabase.auth.onAuthStateChange(async (event, session) => {
+      if (!isMounted) return;
+      if (event === 'SIGNED_IN' && session?.user) {
+        clearTimeout(timeoutId);
+        try {
+          const user = session.user;
+
+          // Check if user has completed profile setup
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('semester_start')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Profile error:', profileError);
+          }
+
+          if (!isMounted) return;
+
+          // Redirect based on setup status
+          if (profile?.semester_start) {
+            router.push('/dashboard');
+          } else {
+            router.push('/set-password');
+          }
+        } catch (err) {
+          console.error('Callback error:', err);
+          if (isMounted) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+            setTimeout(() => router.push('/login'), 2000);
+          }
+        }
+      }
+    });
+
+    // Also check if user is already authenticated (e.g., implicit flow already resolved)
+    const checkExisting = async () => {
+      const { data: { user } } = await supabase.auth.getUser();
+      if (!isMounted) return;
+      if (user) {
+        clearTimeout(timeoutId);
+        try {
+          const { data: profile, error: profileError } = await supabase
+            .from('profiles')
+            .select('semester_start')
+            .eq('id', user.id)
+            .single();
+
+          if (profileError && profileError.code !== 'PGRST116') {
+            console.error('Profile error:', profileError);
+          }
+
+          if (!isMounted) return;
+
+          if (profile?.semester_start) {
+            router.push('/dashboard');
+          } else {
+            router.push('/set-password');
+          }
+        } catch (err) {
+          console.error('Callback error:', err);
+          if (isMounted) {
+            setError(err instanceof Error ? err.message : 'An unexpected error occurred');
+            setTimeout(() => router.push('/login'), 2000);
+          }
+        }
+      }
+    };
+    checkExisting();
+
+    return () => {
+      isMounted = false;
+      clearTimeout(timeoutId);
+      subscription.unsubscribe();
+    };
+  }, [router, error]);
 
   return (
     <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>

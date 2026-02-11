@@ -21,7 +21,7 @@ import {
   type EmailUpdateData,
   type PasswordUpdateData,
 } from '@/lib/validations/profile';
-import { Loader2, User, Mail, Lock, Save, Eye, EyeOff, ArrowLeft } from 'lucide-react';
+import { Loader2, User, Mail, Lock, Save, Eye, EyeOff, ArrowLeft, PieChart, LayoutDashboard, Calendar, Clock, Key } from 'lucide-react';
 import { clsx } from 'clsx';
 import Link from 'next/link';
 
@@ -123,10 +123,10 @@ export default function ProfilePage() {
     try {
       const updatedProfile = await updateProfileIdentity(data);
       setProfile(updatedProfile);
-      showToast('✅ Profile updated successfully!', 'success');
+      showToast('Profile updated successfully!', 'success');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update profile';
-      showToast(`❌ ${errorMessage}`, 'error');
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -135,10 +135,10 @@ export default function ProfilePage() {
     try {
       await updateUserEmail(data.email);
       setUserEmail(data.email);
-      showToast('✅ Email updated! Please check your inbox to confirm.', 'success');
+      showToast('Email updated! Please check your inbox to confirm.', 'success');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update email';
-      showToast(`❌ ${errorMessage}`, 'error');
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -147,10 +147,10 @@ export default function ProfilePage() {
     try {
       await updateUserPassword(data.currentPassword, data.newPassword);
       passwordForm.reset();
-      showToast('✅ Password updated successfully!', 'success');
+      showToast('Password updated successfully!', 'success');
     } catch (error) {
       const errorMessage = error instanceof Error ? error.message : 'Failed to update password';
-      showToast(`❌ ${errorMessage}`, 'error');
+      showToast(errorMessage, 'error');
     }
   };
 
@@ -164,7 +164,7 @@ export default function ProfilePage() {
 
   return (
     <div className="min-h-screen py-8 px-4" style={{ background: 'var(--background)' }}>
-      <div className="max-w-3xl mx-auto">
+      <div className="max-w-5xl mx-auto">
         {/* Header */}
         <div className="mb-8">
           <Link
@@ -175,9 +175,9 @@ export default function ProfilePage() {
             Back to Dashboard
           </Link>
           
-          <div className="border-[3px] border-black dark:border-white bg-blue-500 px-6 py-4 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]">
-            <h1 className="text-3xl md:text-4xl font-black text-white">User Profile</h1>
-            <p className="text-white font-bold mt-1 opacity-90">Manage your personal information and account settings</p>
+          <div className="border-[4px] border-black dark:border-white bg-gradient-to-r from-blue-500 to-purple-600 px-8 py-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+            <h1 className="text-4xl md:text-5xl font-black text-white">My Profile</h1>
+            <p className="text-white/90 font-bold mt-2 text-lg">Manage your account and navigate to different sections</p>
           </div>
         </div>
 
@@ -193,11 +193,81 @@ export default function ProfilePage() {
           </div>
         )}
 
+        {/* Quick Navigation Grid - 3D Style */}
+        <div className="mb-8 border-[4px] border-black dark:border-white bg-white dark:bg-slate-800 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+          <h2 className="text-2xl font-black text-black dark:text-white mb-6 flex items-center gap-2">
+            <LayoutDashboard size={28} />
+            Quick Navigation
+          </h2>
+          
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
+            <Link
+              href="/dashboard"
+              className={clsx(
+                "group relative p-6 border-[4px] border-black dark:border-white bg-blue-400 dark:bg-blue-600",
+                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
+                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
+                "transition-all duration-150"
+              )}
+            >
+              <LayoutDashboard size={32} className="mb-3 text-black dark:text-white" />
+              <h3 className="text-lg font-black text-black dark:text-white">Dashboard</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">Home</p>
+            </Link>
+
+            <Link
+              href="/analytics"
+              className={clsx(
+                "group relative p-6 border-[4px] border-black dark:border-white bg-orange-400 dark:bg-orange-600",
+                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
+                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
+                "transition-all duration-150"
+              )}
+            >
+              <PieChart size={32} className="mb-3 text-black dark:text-white" />
+              <h3 className="text-lg font-black text-black dark:text-white">Analytics</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">Stats</p>
+            </Link>
+
+            <Link
+              href="/dashboard/calendar"
+              className={clsx(
+                "group relative p-6 border-[4px] border-black dark:border-white bg-green-400 dark:bg-green-600",
+                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
+                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
+                "transition-all duration-150"
+              )}
+            >
+              <Calendar size={32} className="mb-3 text-black dark:text-white" />
+              <h3 className="text-lg font-black text-black dark:text-white">Calendar</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">View</p>
+            </Link>
+
+            <Link
+              href="/timetable"
+              className={clsx(
+                "group relative p-6 border-[4px] border-black dark:border-white bg-purple-400 dark:bg-purple-600",
+                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
+                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
+                "transition-all duration-150"
+              )}
+            >
+              <Clock size={32} className="mb-3 text-black dark:text-white" />
+              <h3 className="text-lg font-black text-black dark:text-white">Timetable</h3>
+              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">Schedule</p>
+            </Link>
+          </div>
+        </div>
+
         {/* Identity Module */}
-        <div className="mb-8 border-[3px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]">
-          <div className="border-b-[3px] border-black dark:border-white bg-yellow-400 px-6 py-4">
-            <h2 className="text-2xl font-black text-black flex items-center gap-2">
-              <User size={24} />
+        <div className="mb-8 border-[4px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+          <div className="border-b-[4px] border-black dark:border-white bg-yellow-400 px-6 py-5">
+            <h2 className="text-2xl font-black text-black flex items-center gap-3">
+              <User size={28} />
               Identity
             </h2>
           </div>
@@ -205,8 +275,8 @@ export default function ProfilePage() {
           <div className="p-6">
             {/* Profile Picture Placeholder */}
             <div className="mb-6 flex justify-center">
-              <div className="w-24 h-24 border-[4px] border-black dark:border-white bg-gradient-to-br from-blue-400 to-purple-500 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)] flex items-center justify-center">
-                <span className="text-4xl font-black text-white">
+              <div className="w-32 h-32 border-[5px] border-black dark:border-white bg-gradient-to-br from-blue-400 via-purple-500 to-pink-500 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] flex items-center justify-center">
+                <span className="text-5xl font-black text-white">
                   {getInitials(profile?.full_name || null)}
                 </span>
               </div>
@@ -223,7 +293,7 @@ export default function ProfilePage() {
                   {...identityForm.register('full_name')}
                   className={clsx(
                     'w-full px-4 py-3 text-base font-semibold',
-                    'border-[3px] border-black dark:border-white bg-white dark:bg-slate-700',
+                    'border-[4px] border-black dark:border-white bg-white dark:bg-slate-700',
                     'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
                     'focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]',
                     'transition-all duration-150',
@@ -249,7 +319,7 @@ export default function ProfilePage() {
                   {...identityForm.register('username')}
                   className={clsx(
                     'w-full px-4 py-3 text-base font-semibold',
-                    'border-[3px] border-black dark:border-white bg-white dark:bg-slate-700',
+                    'border-[4px] border-black dark:border-white bg-white dark:bg-slate-700',
                     'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
                     'focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]',
                     'transition-all duration-150',
@@ -274,11 +344,11 @@ export default function ProfilePage() {
                 disabled={identityForm.formState.isSubmitting}
                 className={clsx(
                   'w-full py-4 text-lg font-black text-white',
-                  'border-[3px] border-black dark:border-white bg-blue-500',
-                  'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                  'border-[4px] border-black dark:border-white bg-blue-500',
+                  'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
                   'transition-all duration-150',
-                  'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
-                  'active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+                  'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]',
+                  'active:translate-x-[6px] active:translate-y-[6px] active:shadow-none',
                   'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0',
                   'flex items-center justify-center gap-2'
                 )}
@@ -297,12 +367,12 @@ export default function ProfilePage() {
         </div>
 
         {/* Account Management Section */}
-        <div className="space-y-8">
+        <div className="grid grid-cols-1 lg:grid-cols-2 gap-8 mb-8">
           {/* Email Update */}
-          <div className="border-[3px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]">
-            <div className="border-b-[3px] border-black dark:border-white bg-green-400 px-6 py-4">
-              <h2 className="text-2xl font-black text-black flex items-center gap-2">
-                <Mail size={24} />
+          <div className="border-[4px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+            <div className="border-b-[4px] border-black dark:border-white bg-green-400 px-6 py-5">
+              <h2 className="text-2xl font-black text-black flex items-center gap-3">
+                <Mail size={28} />
                 Change Email
               </h2>
             </div>
@@ -318,7 +388,7 @@ export default function ProfilePage() {
                     {...emailForm.register('email')}
                     className={clsx(
                       'w-full px-4 py-3 text-base font-semibold',
-                      'border-[3px] border-black dark:border-white bg-white dark:bg-slate-700',
+                      'border-[4px] border-black dark:border-white bg-white dark:bg-slate-700',
                       'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
                       'focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]',
                       'transition-all duration-150',
@@ -342,11 +412,11 @@ export default function ProfilePage() {
                   disabled={emailForm.formState.isSubmitting}
                   className={clsx(
                     'w-full py-4 text-lg font-black text-white',
-                    'border-[3px] border-black dark:border-white bg-green-500',
-                    'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                    'border-[4px] border-black dark:border-white bg-green-500',
+                    'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
                     'transition-all duration-150',
-                    'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
-                    'active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+                    'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]',
+                    'active:translate-x-[6px] active:translate-y-[6px] active:shadow-none',
                     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0',
                     'flex items-center justify-center gap-2'
                   )}
@@ -365,10 +435,10 @@ export default function ProfilePage() {
           </div>
 
           {/* Password Update */}
-          <div className="border-[3px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]">
-            <div className="border-b-[3px] border-black dark:border-white bg-orange-400 px-6 py-4">
-              <h2 className="text-2xl font-black text-black flex items-center gap-2">
-                <Lock size={24} />
+          <div className="border-[4px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
+            <div className="border-b-[4px] border-black dark:border-white bg-orange-400 px-6 py-5">
+              <h2 className="text-2xl font-black text-black flex items-center gap-3">
+                <Lock size={28} />
                 Change Password
               </h2>
             </div>
@@ -386,7 +456,7 @@ export default function ProfilePage() {
                       {...passwordForm.register('currentPassword')}
                       className={clsx(
                         'w-full px-4 py-3 pr-12 text-base font-semibold',
-                        'border-[3px] border-black dark:border-white bg-white dark:bg-slate-700',
+                        'border-[4px] border-black dark:border-white bg-white dark:bg-slate-700',
                         'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
                         'focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]',
                         'transition-all duration-150',
@@ -421,7 +491,7 @@ export default function ProfilePage() {
                       {...passwordForm.register('newPassword')}
                       className={clsx(
                         'w-full px-4 py-3 pr-12 text-base font-semibold',
-                        'border-[3px] border-black dark:border-white bg-white dark:bg-slate-700',
+                        'border-[4px] border-black dark:border-white bg-white dark:bg-slate-700',
                         'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
                         'focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]',
                         'transition-all duration-150',
@@ -456,7 +526,7 @@ export default function ProfilePage() {
                       {...passwordForm.register('confirmPassword')}
                       className={clsx(
                         'w-full px-4 py-3 pr-12 text-base font-semibold',
-                        'border-[3px] border-black dark:border-white bg-white dark:bg-slate-700',
+                        'border-[4px] border-black dark:border-white bg-white dark:bg-slate-700',
                         'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
                         'focus:outline-none focus:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:focus:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)] focus:-translate-x-[1px] focus:-translate-y-[1px]',
                         'transition-all duration-150',
@@ -488,11 +558,11 @@ export default function ProfilePage() {
                   disabled={passwordForm.formState.isSubmitting}
                   className={clsx(
                     'w-full py-4 text-lg font-black text-white',
-                    'border-[3px] border-black dark:border-white bg-orange-500',
-                    'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                    'border-[4px] border-black dark:border-white bg-orange-500',
+                    'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
                     'transition-all duration-150',
-                    'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
-                    'active:translate-x-[4px] active:translate-y-[4px] active:shadow-none',
+                    'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]',
+                    'active:translate-x-[6px] active:translate-y-[6px] active:shadow-none',
                     'disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:translate-x-0 disabled:hover:translate-y-0',
                     'flex items-center justify-center gap-2'
                   )}
@@ -508,6 +578,35 @@ export default function ProfilePage() {
                 </button>
               </form>
             </div>
+          </div>
+        </div>
+
+        {/* Forgot Password Section - NEW */}
+        <div className="border-[4px] border-black dark:border-white bg-gradient-to-r from-pink-400 to-red-500 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)] mb-8">
+          <div className="flex items-center justify-between flex-wrap gap-4">
+            <div>
+              <h3 className="text-2xl font-black text-white flex items-center gap-2 mb-2">
+                <Key size={28} />
+                Forgot Your Password?
+              </h3>
+              <p className="text-white/90 font-semibold">
+                Need to reset your password? Click the button to receive a password reset link via email.
+              </p>
+            </div>
+            <Link
+              href="/forgot-password"
+              className={clsx(
+                'px-8 py-4 border-[4px] border-black dark:border-white bg-white text-black font-black text-lg',
+                'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]',
+                'active:translate-x-[6px] active:translate-y-[6px] active:shadow-none',
+                'transition-all duration-150',
+                'inline-flex items-center gap-2'
+              )}
+            >
+              <Key size={20} />
+              Reset Password
+            </Link>
           </div>
         </div>
       </div>

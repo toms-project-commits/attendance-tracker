@@ -21,18 +21,9 @@ import {
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import {
-  eachDayOfInterval,
-  isSunday,
-  parseISO,
-  isBefore,
-  startOfToday,
-  format,
-  startOfMonth,
-  getDay as getDayOfWeek,
-  addDays
-} from 'date-fns';
+import { getDay as getDayOfWeek } from 'date-fns';
 import useStudentData from '@/lib/hooks/useStudentData';
+import { calculateAttendance } from '@/lib/utils/attendanceCalculations';
 
 interface QuickStatProps {
   label: string;
@@ -178,81 +169,14 @@ const Dashboard = memo(function Dashboard() {
     return user?.email?.split('@')[0] || 'Student';
   }, [user, profile]);
 
+  // Use centralized calculation logic - ensures consistency with Analytics page
   const stats = useMemo(() => {
-    if (!profile?.semester_start) {
-      return { attended: 0, total: 0 };
-    }
-
-    const today = startOfToday();
-    const startDate = parseISO(profile.semester_start);
-
-    if (isBefore(today, startDate)) {
-      return { attended: 0, total: 0 };
-    }
-
-    const daysInterval = eachDayOfInterval({ start: startDate, end: today });
-    let totalClassesSoFar = 0;
-    let attendedClassesSoFar = 0;
-
-    daysInterval.forEach((dayObj) => {
-      const dateStr = format(dayObj, 'yyyy-MM-dd');
-
-      if (isSunday(dayObj)) return;
-
-      const isHoliday = holidays.some((h) => h.date && h.date.substring(0, 10) === dateStr);
-      if (isHoliday) return;
-
-      const dayOfWeekIndex = getDayOfWeek(dayObj);
-      if (dayOfWeekIndex === 6) {
-        const firstOfMonth = startOfMonth(dayObj);
-        let firstSaturday: Date | null = null;
-
-        for (let i = 0; i < 7; i++) {
-          const candidateDate = addDays(firstOfMonth, i);
-          if (getDayOfWeek(candidateDate) === 6) {
-            firstSaturday = candidateDate;
-            break;
-          }
-        }
-
-        if (firstSaturday) {
-          const daysDiff = Math.floor((dayObj.getTime() - firstSaturday.getTime()) / (1000 * 60 * 60 * 24));
-          const weekNum = Math.floor(daysDiff / 7) + 1;
-          if (weekNum >= 1 && weekNum <= 5 && profile.saturday_offs && profile.saturday_offs.includes(weekNum)) {
-            return;
-          }
-        }
-      }
-
-      const dbDay = dayOfWeekIndex === 0 ? 7 : dayOfWeekIndex;
-      const classesForDay = timetable.filter((slot) =>
-        slot.day_of_week === dbDay && slot.slot_type === 'SUBJECT'
-      );
-
-      if (classesForDay.length === 0) return;
-
-      const daysLogs = logs.filter((log) => log.date && log.date.substring(0, 10) === dateStr);
-
-      classesForDay.forEach((cls) => {
-        const logIndex = daysLogs.findIndex((log) => log.subject_id === cls.subject_id);
-        let log = null;
-        if (logIndex !== -1) {
-          log = daysLogs[logIndex];
-          daysLogs.splice(logIndex, 1);
-        }
-
-        if (log?.status === 'CANCELLED') return;
-
-        totalClassesSoFar++;
-
-        if (log?.status === 'PRESENT') {
-          attendedClassesSoFar++;
-        }
-      });
-    });
-
-    return { attended: attendedClassesSoFar, total: totalClassesSoFar };
-  }, [holidays, logs, profile, timetable]);
+    const result = calculateAttendance(profile, subjects, timetable, holidays, logs);
+    return {
+      attended: result.overall.attended,
+      total: result.overall.total
+    };
+  }, [profile, subjects, timetable, holidays, logs]);
 
   const todayClasses = useMemo(() => {
     const dayOfWeek = new Date().getDay();
