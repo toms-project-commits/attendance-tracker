@@ -166,11 +166,18 @@ export function calculateAttendance(
 
       if (log?.status === 'CANCELLED') return;
 
-      // Only count classes that have been explicitly marked.
-      // Unmarked classes (no log entry) are NOT counted — they haven't happened
-      // or the user hasn't recorded them yet. Counting them as absent would
-      // produce silently incorrect percentages, especially for today's classes.
-      if (!log) return;
+      // For past classes (not today): Unmarked classes are counted as ABSENT
+      // For today's classes: Unmarked classes are NOT counted (haven't happened yet)
+      const isPastClass = isBefore(dayObj, today);
+      
+      if (!log) {
+        // If it's a past class and not marked, count it as absent
+        if (isPastClass) {
+          subjectMap[cls.subject_id].total++;
+          subjectMap[cls.subject_id].bunked++;
+        }
+        return;
+      }
 
       subjectMap[cls.subject_id].total++;
 

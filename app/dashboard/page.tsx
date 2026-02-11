@@ -15,9 +15,10 @@ import {
   Image as ImageIcon,
   Target,
   Loader2,
-  PartyPopper,
   Rocket,
   User,
+  Users,
+  UserCircle,
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
@@ -219,7 +220,7 @@ const Dashboard = memo(function Dashboard() {
       {/* TOP NAVIGATION */}
       <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-4 flex justify-center items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
         <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
-          <span className="text-2xl"></span> BunkSafe
+          <span className="text-2xl">🎯</span> BunkSafe
         </h1>
       </nav>
 
@@ -230,7 +231,7 @@ const Dashboard = memo(function Dashboard() {
           <div className="flex items-center justify-between gap-6 flex-col lg:flex-row">
             <div className="flex-1 min-w-0">
               <h2 className="text-3xl md:text-4xl font-black mb-3 break-words">
-                Welcome back, {userName}! 
+                Welcome back, {userName}! 👋
               </h2>
               <p className="text-lg md:text-xl font-bold opacity-90">
                 Track every class. Own your attendance. No excuses.
@@ -270,7 +271,43 @@ const Dashboard = memo(function Dashboard() {
           </div>
         </div>
 
-        {/* STATUS INDICATOR - Most Prominent */}
+        {/* QUICK STATS - Bento Grid */}
+        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
+          <QuickStat
+            label="Attendance"
+            value={stats.total > 0 ? `${attendancePercent}%` : '--'}
+            sublabel={`${stats.attended}/${stats.total} classes`}
+            bgColor="bg-blue-400"
+            textColor="text-black"
+            icon={<TrendingUp size={20} />}
+          />
+          <QuickStat
+            label="Today"
+            value={todayClasses}
+            sublabel="classes scheduled"
+            bgColor="bg-purple-400"
+            textColor="text-black"
+            icon={<Calendar size={20} />}
+          />
+          <QuickStat
+            label="Subjects"
+            value={subjectCount}
+            sublabel="being tracked"
+            bgColor="bg-orange-400"
+            textColor="text-black"
+            icon={<BookOpen size={20} />}
+          />
+          <QuickStat
+            label="Status"
+            value={stats.total === 0 ? 'NEW' : isSafe ? 'SAFE' : 'AT RISK'}
+            sublabel={stats.total === 0 ? 'setup needed' : isSafe ? 'keep going!' : 'act now!'}
+            bgColor={stats.total === 0 ? "bg-yellow-400" : isSafe ? "bg-green-400" : "bg-red-500"}
+            textColor={isSafe || stats.total === 0 ? "text-black" : "text-white"}
+            icon={<Zap size={20} />}
+          />
+        </div>
+
+        {/* STATUS INDICATOR */}
         <div 
           className={clsx(
             "border-[3px] border-black p-5 md:p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
@@ -279,7 +316,7 @@ const Dashboard = memo(function Dashboard() {
         >
           <div className="flex items-center gap-4">
             <div className={clsx(
-              "w-14 h-14 md:w-16 md:h-16 border-[3px] border-black flex items-center justify-center",
+              "w-14 h-14 md:w-16 md:h-16 border-[3px] border-black flex items-center justify-center shrink-0",
               isSafe ? "bg-green-600" : "bg-red-700"
             )}>
               {isSafe ? (
@@ -321,7 +358,7 @@ const Dashboard = memo(function Dashboard() {
           <div className="border-[3px] border-black bg-black text-white p-5 md:p-6 shadow-[6px_6px_0px_0px_rgba(251,191,36,1)] transition-all duration-200 hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(251,191,36,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none dark:bg-slate-700 dark:border-white">
             <div className="flex items-center justify-between">
               <div className="flex items-center gap-4 md:gap-6">
-                <div className="w-14 h-14 md:w-16 md:h-16 bg-yellow-400 border-[3px] border-white flex items-center justify-center group-hover:bg-yellow-300 transition-colors">
+                <div className="w-14 h-14 md:w-16 md:h-16 bg-yellow-400 border-[3px] border-white flex items-center justify-center group-hover:bg-yellow-300 transition-colors shrink-0">
                   <CheckCircle size={28} className="text-black" />
                 </div>
                 <div>
@@ -338,46 +375,10 @@ const Dashboard = memo(function Dashboard() {
           </div>
         </Link>
 
-        {/* QUICK STATS - Bento Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <QuickStat
-            label="Attendance"
-            value={stats.total > 0 ? `${attendancePercent}%` : '--'}
-            sublabel={`${stats.attended}/${stats.total} classes`}
-            bgColor="bg-blue-400"
-            textColor="text-black"
-            icon={<TrendingUp size={20} />}
-          />
-          <QuickStat
-            label="Today"
-            value={todayClasses}
-            sublabel="classes scheduled"
-            bgColor="bg-purple-400"
-            textColor="text-black"
-            icon={<Calendar size={20} />}
-          />
-          <QuickStat
-            label="Subjects"
-            value={subjectCount}
-            sublabel="being tracked"
-            bgColor="bg-orange-400"
-            textColor="text-black"
-            icon={<BookOpen size={20} />}
-          />
-          <QuickStat
-            label="Status"
-            value={stats.total === 0 ? 'NEW' : isSafe ? 'SAFE' : 'AT RISK'}
-            sublabel={stats.total === 0 ? 'setup needed' : isSafe ? 'keep going!' : 'act now!'}
-            bgColor={stats.total === 0 ? "bg-yellow-400" : isSafe ? "bg-green-400" : "bg-red-500"}
-            textColor={isSafe || stats.total === 0 ? "text-black" : "text-white"}
-            icon={<Zap size={20} />}
-          />
-        </div>
-
         {/* HELPFUL TIP / ONBOARDING */}
         {stats.total === 0 && subjectCount === 0 && (
           <BrutalCard className="bg-yellow-400" hoverable={false}>
-            <h3 className="text-2xl font-black text-black mb-4"> Get Started</h3>
+            <h3 className="text-2xl font-black text-black mb-4">🚀 Get Started</h3>
             <p className="text-black text-lg font-semibold mb-6">
               Start by adding your subjects and setting up your timetable to begin tracking attendance.
             </p>
@@ -475,13 +476,54 @@ const Dashboard = memo(function Dashboard() {
           </Link>
         </div>
 
-        {/* SECONDARY GRID - Additional Features */}
+        {/* ADDITIONAL FEATURES - Profile Featured */}
         <h2 className="text-2xl font-black text-black dark:text-white pt-4 flex items-center gap-2">
           <Target size={24} />
           Additional Features
         </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 gap-4 md:gap-6">
-          {/* Card 5: View Proofs */}
+        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
+          {/* Card 1: MY PROFILE - FEATURED & PROMINENT */}
+          <Link href="/profile" className="block md:col-span-2 lg:col-span-1">
+            <BrutalCard className="h-full bg-gradient-to-br from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 relative overflow-hidden">
+              {/* Decorative Background Pattern */}
+              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
+              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12"></div>
+              
+              <div className="relative z-10">
+                <div className="h-16 w-16 bg-white border-[3px] border-black flex items-center justify-center text-indigo-600 mb-5">
+                  <UserCircle size={32} strokeWidth={2.5} />
+                </div>
+                <h3 className="text-2xl md:text-3xl font-black text-white mb-3 flex items-center gap-2">
+                  My Profile
+                  <span className="text-sm px-2 py-1 bg-yellow-400 text-black border-[2px] border-black">NEW</span>
+                </h3>
+                <p className="text-white text-base font-bold leading-relaxed mb-4">
+                  Manage your account, update username, customize settings, and view your semester progress.
+                </p>
+                <div className="flex items-center gap-2 text-white font-black text-sm">
+                  <span>VIEW PROFILE</span>
+                  <ChevronRight size={20} />
+                </div>
+              </div>
+            </BrutalCard>
+          </Link>
+
+          {/* Card 2: Friends */}
+          <Link href="/friends" className="block">
+            <BrutalCard className="h-full bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50">
+              <div className="h-14 w-14 bg-cyan-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
+                <Users size={28} />
+              </div>
+              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
+                Friends
+              </h3>
+              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
+                Connect with classmates and view their attendance to stay motivated together.
+              </p>
+            </BrutalCard>
+          </Link>
+
+          {/* Card 3: View Proofs */}
           <Link href="/proofs" className="block">
             <BrutalCard className="h-full bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50">
               <div className="h-14 w-14 bg-pink-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
@@ -514,12 +556,9 @@ const Dashboard = memo(function Dashboard() {
           </p>
         </div>
 
-        {/* Profile & Sign Out Section */}
-        <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-6 pb-8">
-          <BrutalButton href="/profile" variant="default" className="w-full sm:w-auto px-8">
-            <User size={18} className="mr-2" /> My Profile
-          </BrutalButton>
-          <BrutalButton onClick={handleLogout} variant="danger" className="w-full sm:w-auto px-8">
+        {/* Sign Out Button */}
+        <div className="flex justify-center items-center pt-6 pb-8">
+          <BrutalButton onClick={handleLogout} variant="danger" className="px-8">
             <LogOut size={18} className="mr-2" /> Sign Out
           </BrutalButton>
         </div>
