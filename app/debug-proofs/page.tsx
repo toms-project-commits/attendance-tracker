@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
-import { Filesystem, Directory } from '@capacitor/filesystem';
+import { isNativePlatform } from '@/lib/capacitor';
 import { ArrowLeft } from 'lucide-react';
 import Link from 'next/link';
 
@@ -23,14 +23,31 @@ export default function DebugProofsPage() {
   const checkProofs = async () => {
     try {
       addLog('Starting proof debug check...');
-      
+
+      // Only run filesystem checks on native platforms
+      if (!isNativePlatform()) {
+        addLog('Running on WEB — filesystem checks are only available on the native app (Android/iOS).');
+        addLog('Use the browser DevTools to inspect IndexedDB for web proof storage.');
+        const { data: { user } } = await supabase.auth.getUser();
+        if (user) {
+          setUserId(user.id);
+          addLog(`User ID: ${user.id}`);
+        } else {
+          addLog('ERROR: No user found');
+        }
+        return;
+      }
+
+      // Dynamically import Capacitor Filesystem only on native
+      const { Filesystem, Directory } = await import('@capacitor/filesystem');
+
       // Get user ID
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
         addLog('ERROR: No user found');
         return;
       }
-      
+
       setUserId(user.id);
       addLog(`User ID: ${user.id}`);
 
@@ -41,9 +58,9 @@ export default function DebugProofsPage() {
           path: 'attendance-proofs',
           directory: Directory.Data,
         });
-        
+
         addLog(`SUCCESS: Found ${result.files.length} files in proof directory`);
-        
+
         const fileList = result.files.map((file: any) => {
           const name = typeof file === 'string' ? file : file.name;
           return {
@@ -53,20 +70,20 @@ export default function DebugProofsPage() {
             isImage: name.endsWith('.webp')
           };
         });
-        
+
         setFiles(fileList);
-        
+
         // Log user's files
         const userFiles = fileList.filter(f => f.isUserFile);
         addLog(`User has ${userFiles.length} files`);
         addLog(`Metadata files: ${userFiles.filter(f => f.isMetadata).length}`);
         addLog(`Image files: ${userFiles.filter(f => f.isImage).length}`);
-        
+
         // List all user files
         userFiles.forEach(f => {
           addLog(`  - ${f.name}`);
         });
-        
+
       } catch (dirError: any) {
         addLog(`ERROR reading directory: ${dirError.message}`);
         addLog('This usually means no proofs have been saved yet');
@@ -81,7 +98,7 @@ export default function DebugProofsPage() {
           directory: Directory.Data,
         });
         addLog('SUCCESS: Write test passed');
-        
+
         // Clean up test file
         await Filesystem.deleteFile({
           path: 'attendance-proofs/test.txt',
@@ -102,7 +119,7 @@ export default function DebugProofsPage() {
     <div className="min-h-screen p-4 bg-gray-100 dark:bg-gray-900">
       <div className="max-w-4xl mx-auto">
         <div className="mb-4">
-          <Link 
+          <Link
             href="/dashboard"
             className="inline-flex items-center gap-2 px-4 py-2 bg-blue-500 text-white font-bold rounded hover:bg-blue-600"
           >
@@ -115,7 +132,7 @@ export default function DebugProofsPage() {
           <h1 className="text-2xl font-black mb-4 text-black dark:text-white">
             Proof Storage Debug Tool
           </h1>
-          
+
           {userId && (
             <div className="mb-4 p-3 bg-blue-100 dark:bg-blue-900 rounded">
               <p className="text-sm font-mono text-black dark:text-white">

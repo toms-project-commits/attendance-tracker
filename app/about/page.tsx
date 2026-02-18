@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation';
 import { useEffect, useState } from 'react';
 import { supabase } from '@/lib/supabase';
 import { clsx } from 'clsx';
+import Link from 'next/link';
 
 export default function AboutPage() {
   const router = useRouter();
@@ -12,8 +13,8 @@ export default function AboutPage() {
 
   useEffect(() => {
     // Check authentication status
-    supabase.auth.getSession().then(({ data: { session } }) => {
-      setIsAuthenticated(!!session);
+    supabase.auth.getUser().then(({ data: { user } }) => {
+      setIsAuthenticated(!!user);
     });
   }, []);
 
@@ -177,6 +178,31 @@ export default function AboutPage() {
               Coming Soon
             </p>
           </div>
+        </div>
+
+        {/* LEGAL LINK */}
+        <div className="border-[3px] border-black bg-white p-6 md:p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+          <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-4 text-center">
+            Legal Information
+          </h3>
+          <p className="text-base font-semibold text-gray-600 dark:text-gray-400 text-center leading-relaxed mb-6">
+            View our Terms & Conditions and Privacy Policy to understand how we protect your data and your rights.
+          </p>
+          <Link 
+            href="/legal"
+            className={clsx(
+              "w-full py-4 font-black text-lg text-black flex items-center justify-center gap-3",
+              "border-[3px] border-black bg-green-400",
+              "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
+              "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(0,0,0,1)]",
+              "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
+              "transition-all duration-150",
+              "dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
+              "dark:hover:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]"
+            )}
+          >
+            View Terms & Privacy Policy
+          </Link>
         </div>
 
         {/* BACK BUTTON */}

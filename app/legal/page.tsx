@@ -260,7 +260,7 @@ export default function LegalPage() {
                     </p>
                     <div className="border-[3px] border-black bg-red-400 p-4">
                       <p className="text-base font-black text-black">
-                        ⚠️ IMPORTANT: The Bunk Logic provides <strong>ESTIMATES ONLY</strong>. These calculations may not perfectly match your college's official attendance records.
+                        ⚠️ IMPORTANT: The Bunk Logic provides <strong>ESTIMATES ONLY</strong>. These calculations may not perfectly match your college&apos;s official attendance records.
                       </p>
                     </div>
                   </div>

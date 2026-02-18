@@ -1,7 +1,7 @@
 'use client';
 
 import { useState, useRef, useCallback } from 'react';
-import { Camera, MapPin, X, Check, AlertCircle, Loader2 } from 'lucide-react';
+import { Camera, X, Check, AlertCircle, Loader2 } from 'lucide-react';
 import { clsx } from 'clsx';
 
 interface ProofCaptureProps {
@@ -21,6 +21,7 @@ export default function ProofCapture({ onCapture, onCancel, subjectName }: Proof
   const [error, setError] = useState<string | null>(null);
   const [processingImage, setProcessingImage] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const watermarkedFileRef = useRef<File | null>(null);
   const canvasRef = useRef<HTMLCanvasElement>(null);
 
   // Request geolocation
@@ -218,7 +219,7 @@ export default function ProofCapture({ onCapture, onCancel, subjectName }: Proof
       setPreview(previewUrl);
 
       // Store file for confirmation
-      (fileInputRef.current as any).watermarkedFile = watermarkedFile;
+      watermarkedFileRef.current = watermarkedFile;
 
       setProcessingImage(false);
     } catch (err) {
@@ -237,7 +238,7 @@ export default function ProofCapture({ onCapture, onCancel, subjectName }: Proof
 
   // Confirm and use captured image
   const confirmCapture = useCallback(() => {
-    const watermarkedFile = (fileInputRef.current as any)?.watermarkedFile;
+    const watermarkedFile = watermarkedFileRef.current;
     if (watermarkedFile) {
       onCapture(watermarkedFile);
     }
@@ -253,8 +254,8 @@ export default function ProofCapture({ onCapture, onCancel, subjectName }: Proof
     setError(null);
     if (fileInputRef.current) {
       fileInputRef.current.value = '';
-      delete (fileInputRef.current as any).watermarkedFile;
     }
+    watermarkedFileRef.current = null;
   }, [preview]);
 
   // Cancel and close

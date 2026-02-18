@@ -87,13 +87,20 @@ export default function LoginPage() {
         const { error } = await supabase.auth.signInWithPassword({ email, password });
         if (error) throw error;
         
-        // If user doesn't want to be remembered, sign out on window close
-        if (!rememberMe && typeof window !== 'undefined') {
-          window.addEventListener('beforeunload', () => {
-            supabase.auth.signOut();
-          }, { once: true });
+        // Track "remember me" preference using sessionStorage.
+        // sessionStorage persists across navigation but is cleared when the
+        // browser tab/window is closed, giving us real "session-only" behaviour
+        // without the broken beforeunload approach that fires on every navigation.
+        if (typeof window !== 'undefined') {
+          if (!rememberMe) {
+            localStorage.setItem('bs_no_persist', '1');
+            sessionStorage.setItem('bs_session_active', '1');
+          } else {
+            localStorage.removeItem('bs_no_persist');
+            sessionStorage.setItem('bs_session_active', '1');
+          }
         }
-        
+
         const { data: { user } } = await supabase.auth.getUser();
         if (user) {
           const { data: profile } = await supabase

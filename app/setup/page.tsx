@@ -1,5 +1,5 @@
 'use client';
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
@@ -55,7 +55,7 @@ export default function SetupPage() {
     checkAuth();
   }, [router]);
 
-  const checkUsernameAvailability = async (usernameToCheck: string) => {
+  const checkUsernameAvailability = useCallback(async (usernameToCheck: string) => {
     if (!usernameToCheck) {
       setUsernameError(null);
       setUsernameAvailable(null);
@@ -99,7 +99,7 @@ export default function SetupPage() {
     } finally {
       setCheckingUsername(false);
     }
-  };
+  }, []);
 
   useEffect(() => {
     const timeoutId = setTimeout(() => {

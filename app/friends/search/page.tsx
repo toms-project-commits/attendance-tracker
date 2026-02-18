@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useCallback } from 'react';
+import { useState, useCallback, useRef } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 import Link from 'next/link';
@@ -15,6 +15,11 @@ type SearchResult = {
   request_status: 'none' | 'pending_sent' | 'pending_received' | 'accepted';
 };
 
+// Minimum milliseconds between username searches (B-08 rate limiting)
+const SEARCH_COOLDOWN_MS = 3000;
+// Minimum milliseconds between friend requests to the same user
+const REQUEST_COOLDOWN_MS = 60_000;
+
 export default function FriendsSearchPage() {
   const router = useRouter();
   const [searchQuery, setSearchQuery] = useState('');
@@ -22,9 +27,26 @@ export default function FriendsSearchPage() {
   const [results, setResults] = useState<SearchResult[]>([]);
   const [sendingRequestTo, setSendingRequestTo] = useState<string | null>(null);
   const [hasSearched, setHasSearched] = useState(false);
+  const [searchCooldownMsg, setSearchCooldownMsg] = useState<string | null>(null);
+
+  // B-08: track last search timestamp and per-user request timestamps
+  const lastSearchTime = useRef<number>(0);
+  const requestCooldowns = useRef<Map<string, number>>(new Map());
 
   const handleSearch = useCallback(async () => {
     if (!searchQuery.trim()) return;
+
+    // Rate-limit: enforce minimum cooldown between searches
+    const now = Date.now();
+    const elapsed = now - lastSearchTime.current;
+    if (elapsed < SEARCH_COOLDOWN_MS) {
+      const remaining = Math.ceil((SEARCH_COOLDOWN_MS - elapsed) / 1000);
+      setSearchCooldownMsg(`Please wait ${remaining}s before searching again.`);
+      setTimeout(() => setSearchCooldownMsg(null), SEARCH_COOLDOWN_MS - elapsed);
+      return;
+    }
+    lastSearchTime.current = now;
+    setSearchCooldownMsg(null);
 
     setSearching(true);
     setHasSearched(true);
@@ -110,6 +132,15 @@ export default function FriendsSearchPage() {
   }, [searchQuery, router]);
 
   const handleSendRequest = async (receiverId: string, username: string) => {
+    // B-08: Rate-limit per-user friend requests (60s cooldown)
+    const lastRequest = requestCooldowns.current.get(receiverId) || 0;
+    const cooldownElapsed = Date.now() - lastRequest;
+    if (cooldownElapsed < REQUEST_COOLDOWN_MS) {
+      const remaining = Math.ceil((REQUEST_COOLDOWN_MS - cooldownElapsed) / 1000);
+      alert(`Please wait ${remaining}s before sending another request to ${username}.`);
+      return;
+    }
+    requestCooldowns.current.set(receiverId, Date.now());
     setSendingRequestTo(receiverId);
 
     try {
@@ -229,8 +260,13 @@ export default function FriendsSearchPage() {
               <span className="hidden sm:inline">Search</span>
             </button>
           </div>
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-3">
-            Tip: Try searching for partial usernames (e.g., "john" will find "john123", "johndoe", etc.)
+          {searchCooldownMsg && (
+            <p className="text-xs font-bold text-orange-600 dark:text-orange-400 mt-2">
+              ⏳ {searchCooldownMsg}
+            </p>
+          )}
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-400 mt-2">
+            Tip: Try searching for partial usernames (e.g., &quot;john&quot; will find &quot;john123&quot;, &quot;johndoe&quot;, etc.)
           </p>
         </div>
 

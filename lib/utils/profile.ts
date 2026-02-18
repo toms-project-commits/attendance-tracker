@@ -60,21 +60,39 @@ export async function updateProfileIdentity(
     throw new Error('Not authenticated');
   }
 
-  // Convert username to lowercase
-  const normalizedData = {
-    username: profileData.username.toLowerCase(),
+  // Check if user already has a username set — username is immutable once chosen
+  const { data: existing, error: fetchError } = await supabase
+    .from('profiles')
+    .select('username')
+    .eq('id', user.id)
+    .single();
+
+  if (fetchError) {
+    throw new Error('Failed to fetch current profile');
+  }
+
+  if (existing?.username && existing.username !== profileData.username.toLowerCase()) {
+    throw new Error('Username cannot be changed once set');
+  }
+
+  // Only update full_name; username is set once and cannot be changed
+  const updateData: { full_name: string; username?: string } = {
     full_name: profileData.full_name,
   };
 
+  // Allow setting username only if it hasn't been set yet
+  if (!existing?.username) {
+    updateData.username = profileData.username.toLowerCase();
+  }
+
   const { data, error } = await supabase
     .from('profiles')
-    .update(normalizedData)
+    .update(updateData)
     .eq('id', user.id)
     .select()
     .single();
 
   if (error) {
-    // Handle unique constraint violation
     if (error.code === '23505') {
       throw new Error('Username is already taken');
     }

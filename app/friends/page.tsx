@@ -30,7 +30,6 @@ export default function FriendsPage() {
   const [loading, setLoading] = useState(true);
   const [friends, setFriends] = useState<Friend[]>([]);
   const [pendingCount, setPendingCount] = useState(0);
-  const [currentUserId, setCurrentUserId] = useState<string | null>(null);
   const [removingFriendId, setRemovingFriendId] = useState<string | null>(null);
 
   const loadData = useCallback(async () => {
@@ -41,8 +40,6 @@ export default function FriendsPage() {
         router.push('/login');
         return;
       }
-
-      setCurrentUserId(user.id);
 
       // Load friends list
       const { data: friendsData, error: friendsError } = await supabase

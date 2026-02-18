@@ -12,6 +12,8 @@ const eslintConfig = defineConfig([
     "out/**",
     "build/**",
     "next-env.d.ts",
+    // Android build artifacts — these are compiled output and must never be linted
+    "android/**",
   ]),
 ]);
 

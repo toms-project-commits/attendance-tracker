@@ -46,8 +46,9 @@ export default function AttendanceCalendar({
         }
       }
       
-      if (firstSaturday) {
-        const daysDiff = Math.floor((day.getTime() - firstSaturday.getTime()) / (1000 * 60 * 60 * 24));
+            if (firstSaturday) {
+                              // Use calendar-day difference to avoid timezone-offset errors near UTC boundaries
+                              const daysDiff = Math.round((Date.UTC(day.getFullYear(), day.getMonth(), day.getDate()) - Date.UTC(firstSaturday.getFullYear(), firstSaturday.getMonth(), firstSaturday.getDate())) / (1000 * 60 * 60 * 24));
         const weekNum = Math.floor(daysDiff / 7) + 1;
         if (weekNum >= 1 && weekNum <= 5 && saturdayOffs.includes(weekNum)) {
           return 'saturday-off';

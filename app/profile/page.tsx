@@ -21,7 +21,7 @@ import {
   type EmailUpdateData,
   type PasswordUpdateData,
 } from '@/lib/validations/profile';
-import { Loader2, User, Mail, Lock, Save, Eye, EyeOff, ArrowLeft, PieChart, LayoutDashboard, Calendar, Clock, Key } from 'lucide-react';
+import { Loader2, User, Mail, Lock, Save, Eye, EyeOff, ArrowLeft, Key } from 'lucide-react';
 import { clsx } from 'clsx';
 import Link from 'next/link';
 
@@ -193,75 +193,6 @@ export default function ProfilePage() {
           </div>
         )}
 
-        {/* Quick Navigation Grid - 3D Style */}
-        <div className="mb-8 border-[4px] border-black dark:border-white bg-white dark:bg-slate-800 p-6 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
-          <h2 className="text-2xl font-black text-black dark:text-white mb-6 flex items-center gap-2">
-            <LayoutDashboard size={28} />
-            Quick Navigation
-          </h2>
-          
-          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
-            <Link
-              href="/dashboard"
-              className={clsx(
-                "group relative p-6 border-[4px] border-black dark:border-white bg-blue-400 dark:bg-blue-600",
-                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
-                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
-                "transition-all duration-150"
-              )}
-            >
-              <LayoutDashboard size={32} className="mb-3 text-black dark:text-white" />
-              <h3 className="text-lg font-black text-black dark:text-white">Dashboard</h3>
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">Home</p>
-            </Link>
-
-            <Link
-              href="/analytics"
-              className={clsx(
-                "group relative p-6 border-[4px] border-black dark:border-white bg-orange-400 dark:bg-orange-600",
-                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
-                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
-                "transition-all duration-150"
-              )}
-            >
-              <PieChart size={32} className="mb-3 text-black dark:text-white" />
-              <h3 className="text-lg font-black text-black dark:text-white">Analytics</h3>
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">Stats</p>
-            </Link>
-
-            <Link
-              href="/dashboard/calendar"
-              className={clsx(
-                "group relative p-6 border-[4px] border-black dark:border-white bg-green-400 dark:bg-green-600",
-                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
-                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
-                "transition-all duration-150"
-              )}
-            >
-              <Calendar size={32} className="mb-3 text-black dark:text-white" />
-              <h3 className="text-lg font-black text-black dark:text-white">Calendar</h3>
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">View</p>
-            </Link>
-
-            <Link
-              href="/timetable"
-              className={clsx(
-                "group relative p-6 border-[4px] border-black dark:border-white bg-purple-400 dark:bg-purple-600",
-                "shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-                "hover:-translate-x-[3px] hover:-translate-y-[3px] hover:shadow-[9px_9px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[9px_9px_0px_0px_rgba(255,255,255,1)]",
-                "active:translate-x-[6px] active:translate-y-[6px] active:shadow-none",
-                "transition-all duration-150"
-              )}
-            >
-              <Clock size={32} className="mb-3 text-black dark:text-white" />
-              <h3 className="text-lg font-black text-black dark:text-white">Timetable</h3>
-              <p className="text-sm font-semibold text-black/70 dark:text-white/70 mt-1">Schedule</p>
-            </Link>
-          </div>
-        </div>
 
         {/* Identity Module */}
         <div className="mb-8 border-[4px] border-black dark:border-white bg-white dark:bg-slate-800 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">

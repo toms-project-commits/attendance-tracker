@@ -1,12 +1,12 @@
 'use client';
 
-import { useEffect, useState } from 'react';
+import { useEffect, useState, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { ArrowLeft, Image as ImageIcon, Calendar, BookOpen, X, Loader2, FolderOpen, Clock } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import { getProofsBySubject, getProofPersistent } from '@/lib/persistentProofStorage';
+import { getProofsBySubject } from '@/lib/persistentProofStorage';
 import { format } from 'date-fns';
 
 interface ProofWithMetadata {
@@ -37,11 +37,7 @@ export default function ProofsPage() {
   const [selectedProof, setSelectedProof] = useState<ProofWithMetadata | null>(null);
   const [viewMode, setViewMode] = useState<'subject' | 'date'>('subject');
 
-  useEffect(() => {
-    loadProofs();
-  }, []);
-
-  const loadProofs = async () => {
+  const loadProofs = useCallback(async () => {
     setLoading(true);
     try {
       console.log('[PROOFS PAGE] Starting to load proofs...');
@@ -79,7 +75,11 @@ export default function ProofsPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    loadProofs();
+  }, [loadProofs]);
 
   const getSubjectInfo = (subjectId: string) => {
     return subjects.find(s => s.id === subjectId);
@@ -87,6 +87,78 @@ export default function ProofsPage() {
 
   const getTotalProofsCount = () => {
     return Object.values(proofsBySubject).reduce((sum, proofs) => sum + proofs.length, 0);
+  };
+
+  // B-13: By-date view — group all proofs by calendar date, sorted newest first
+  const renderByDateView = () => {
+    const byDate = new Map<string, ProofWithMetadata[]>();
+    Object.values(proofsBySubject).flat().forEach(proof => {
+      const dateKey = format(new Date(proof.timestamp), 'yyyy-MM-dd');
+      if (!byDate.has(dateKey)) byDate.set(dateKey, []);
+      byDate.get(dateKey)!.push(proof);
+    });
+    const sortedDates = Array.from(byDate.keys()).sort((a, b) => b.localeCompare(a));
+
+    if (sortedDates.length === 0) {
+      return (
+        <div className="border-[3px] border-black border-dashed bg-white dark:bg-slate-800 p-8 text-center dark:border-white">
+          <p className="font-bold text-gray-600 dark:text-gray-400">No proofs stored yet</p>
+        </div>
+      );
+    }
+
+    return (
+      <div className="space-y-4">
+        {sortedDates.map(dateKey => {
+          const proofs = byDate.get(dateKey)!;
+          return (
+            <div
+              key={dateKey}
+              className="border-[3px] border-black bg-white p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]"
+            >
+              <div className="flex items-center gap-3 mb-4">
+                <div className="w-3 h-12 border-[2px] border-black dark:border-white bg-blue-500" />
+                <div>
+                  <h3 className="font-black text-lg text-black dark:text-white">
+                    {format(new Date(dateKey), 'EEEE, dd MMM yyyy')}
+                  </h3>
+                  <p className="text-sm font-bold text-gray-600 dark:text-gray-400">
+                    {proofs.length} proof{proofs.length !== 1 ? 's' : ''}
+                  </p>
+                </div>
+              </div>
+
+              <div className="grid grid-cols-2 md:grid-cols-3 gap-3">
+                {proofs.map(proof => (
+                  <button
+                    key={proof.id}
+                    onClick={() => setSelectedProof(proof)}
+                    className={clsx(
+                      "relative border-[3px] border-black overflow-hidden text-left",
+                      "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+                      "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+                      "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+                      "transition-all duration-150",
+                      "dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+                    )}
+                  >
+                    <img
+                      src={proof.dataUrl}
+                      alt={`Proof for ${proof.subjectName}`}
+                      className="w-full h-32 object-cover"
+                    />
+                    <div className="p-2 bg-black/80">
+                      <p className="text-xs font-bold text-white truncate">{proof.subjectName}</p>
+                      <p className="text-xs text-white/70">{format(new Date(proof.timestamp), 'HH:mm')}</p>
+                    </div>
+                  </button>
+                ))}
+              </div>
+            </div>
+          );
+        })}
+      </div>
+    );
   };
 
   return (
@@ -257,12 +329,8 @@ export default function ProofsPage() {
             );
           })
         ) : (
-          // BY DATE VIEW
-          <div className="text-center p-12 border-[3px] border-black bg-white dark:bg-slate-800 dark:border-white">
-            <p className="font-bold text-gray-600 dark:text-gray-400">
-              Date view coming soon - use subject view for now
-            </p>
-          </div>
+          // BY DATE VIEW — rendered by renderByDateView()
+          renderByDateView()
         )}
       </div>
 

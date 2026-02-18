@@ -124,23 +124,33 @@ export default function SetPasswordPage() {
       });
 
       if (updateAuthError) {
-        throw updateAuthError;
+        console.error('Password update error:', updateAuthError);
+        throw new Error('Failed to set password. Please try again.');
       }
 
       // Store terms acceptance timestamp in profile
-      await supabase
+      const { error: profileUpdateError } = await supabase
         .from('profiles')
         .update({ terms_accepted_at: new Date().toISOString() })
         .eq('id', user.id);
 
+      if (profileUpdateError) {
+        console.error('Profile update error:', profileUpdateError);
+        throw new Error('Failed to update profile. Please try again.');
+      }
+
       setMessage({ text: 'Password set successfully! Redirecting...', type: 'success' });
       
       // Check if user has completed setup
-      const { data: profile } = await supabase
+      const { data: profile, error: profileFetchError } = await supabase
         .from('profiles')
         .select('semester_start')
         .eq('id', user.id)
         .single();
+
+      if (profileFetchError) {
+        console.error('Profile fetch error:', profileFetchError);
+      }
 
       setTimeout(() => {
         if (profile?.semester_start) {

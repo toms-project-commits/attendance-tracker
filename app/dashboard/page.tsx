@@ -16,13 +16,14 @@ import {
   Target,
   Loader2,
   Rocket,
-  User,
   Users,
   UserCircle,
+  Shield,
+  CalendarDays,
+  Hand,
 } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
-import { getDay as getDayOfWeek } from 'date-fns';
 import useStudentData from '@/lib/hooks/useStudentData';
 import { calculateAttendance } from '@/lib/utils/attendanceCalculations';
 
@@ -220,7 +221,8 @@ const Dashboard = memo(function Dashboard() {
       {/* TOP NAVIGATION */}
       <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-4 flex justify-center items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
         <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
-          <span className="text-2xl">🎯</span> BunkSafe
+          <Shield size={28} className="text-blue-500" />
+          BunkSafe
         </h1>
       </nav>
 
@@ -230,8 +232,9 @@ const Dashboard = memo(function Dashboard() {
         <div className="border-[3px] border-black bg-blue-500 text-white p-6 md:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white">
           <div className="flex items-center justify-between gap-6 flex-col lg:flex-row">
             <div className="flex-1 min-w-0">
-              <h2 className="text-3xl md:text-4xl font-black mb-3 break-words">
-                Welcome back, {userName}! 👋
+              <h2 className="text-3xl md:text-4xl font-black mb-3 break-words flex items-center gap-3 flex-wrap">
+                Welcome back, {userName}!
+                <Hand size={36} className="inline-block" />
               </h2>
               <p className="text-lg md:text-xl font-bold opacity-90">
                 Track every class. Own your attendance. No excuses.
@@ -333,9 +336,13 @@ const Dashboard = memo(function Dashboard() {
                 {stats.total === 0 ? (
                   <><Rocket size={28} /> READY TO START</>
                 ) : isSafe ? (
-                  <><CheckCircle size={28} /> YOU'RE SAFE</>
+                  <>
+                    <CheckCircle size={28} /> YOU&apos;RE SAFE
+                  </>
                 ) : (
-                  <><AlertTriangle size={28} /> CRITICAL</>
+                  <>
+                    <AlertTriangle size={28} /> CRITICAL
+                  </>
                 )}
               </h3>
               <p className={clsx(
@@ -378,17 +385,24 @@ const Dashboard = memo(function Dashboard() {
         {/* HELPFUL TIP / ONBOARDING */}
         {stats.total === 0 && subjectCount === 0 && (
           <BrutalCard className="bg-yellow-400" hoverable={false}>
-            <h3 className="text-2xl font-black text-black mb-4">🚀 Get Started</h3>
-            <p className="text-black text-lg font-semibold mb-6">
-              Start by adding your subjects and setting up your timetable to begin tracking attendance.
-            </p>
-            <div className="flex flex-wrap gap-4">
-              <BrutalButton href="/subjects" variant="primary">
-                <BookOpen size={18} className="mr-2" /> Add Subjects
-              </BrutalButton>
-              <BrutalButton href="/timetable">
-                <Calendar size={18} className="mr-2" /> Setup Timetable
-              </BrutalButton>
+            <div className="flex items-start gap-4">
+              <div className="w-12 h-12 bg-blue-500 border-[3px] border-black flex items-center justify-center shrink-0">
+                <Rocket size={24} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <h3 className="text-xl font-black text-black mb-2">Get Started</h3>
+                <p className="text-black text-sm font-semibold mb-4">
+                  Start by adding your subjects and setting up your timetable to begin tracking attendance.
+                </p>
+                <div className="flex flex-wrap gap-3">
+                  <BrutalButton href="/subjects" variant="primary" className="text-sm py-2 px-4">
+                    <BookOpen size={16} className="mr-2" /> Add Subjects
+                  </BrutalButton>
+                  <BrutalButton href="/timetable" className="text-sm py-2 px-4">
+                    <CalendarDays size={16} className="mr-2" /> Setup Timetable
+                  </BrutalButton>
+                </div>
+              </div>
             </div>
           </BrutalCard>
         )}
@@ -434,7 +448,7 @@ const Dashboard = memo(function Dashboard() {
           <Link href="/timetable" className="block">
             <BrutalCard className="h-full bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50">
               <div className="h-14 w-14 bg-purple-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <Calendar size={28} />
+                <CalendarDays size={28} />
               </div>
               <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
                 Timetable
@@ -539,14 +553,23 @@ const Dashboard = memo(function Dashboard() {
           </Link>
         </div>
 
-        {/* About Link */}
+        {/* About & Legal Links */}
         <div className="text-center pt-6 pb-2">
-          <Link 
-            href="/about"
-            className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2"
-          >
-            About the Developer and Mission
-          </Link>
+          <div className="flex items-center justify-center gap-4 flex-wrap">
+            <Link 
+              href="/about"
+              className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2"
+            >
+              About the Developer and Mission
+            </Link>
+            <span className="text-gray-400 dark:text-gray-600">•</span>
+            <Link 
+              href="/legal"
+              className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors underline underline-offset-2"
+            >
+              Terms & Privacy Policy
+            </Link>
+          </div>
         </div>
 
         {/* Attribution */}

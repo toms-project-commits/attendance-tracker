@@ -97,7 +97,7 @@ export default function FriendRequestsPage() {
     loadRequests();
   }, [loadRequests]);
 
-  const handleAccept = async (requestId: string, senderUsername: string) => {
+  const handleAccept = async (requestId: string) => {
     setProcessingId(requestId);
 
     try {
@@ -312,7 +312,7 @@ export default function FriendRequestsPage() {
                     {/* Actions */}
                     <div className="flex gap-2">
                       <button
-                        onClick={() => handleAccept(request.id, request.sender_username)}
+                        onClick={() => handleAccept(request.id)}
                         disabled={processingId === request.id}
                         className={clsx(
                           "flex-1 py-2 px-3 border-[3px] border-black bg-green-500 text-white font-black text-sm",

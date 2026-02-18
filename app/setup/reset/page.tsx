@@ -1,6 +1,6 @@
 'use client';
 
-import { useState, useEffect } from 'react';
+import { useState, useEffect, useCallback } from 'react';
 import { useRouter } from 'next/navigation';
 import { supabase } from '@/lib/supabase';
 
@@ -29,11 +29,7 @@ export default function NewSemesterPage() {
   const [endDate, setEndDate] = useState('');
   const [newSemesterName, setNewSemesterName] = useState('');
 
-  useEffect(() => {
-    fetchCurrentSemester();
-  }, []);
-
-  const fetchCurrentSemester = async () => {
+  const fetchCurrentSemester = useCallback(async () => {
     try {
       const { data: { user } } = await supabase.auth.getUser();
       if (!user) {
@@ -60,7 +56,11 @@ export default function NewSemesterPage() {
     } finally {
       setLoading(false);
     }
-  };
+  }, [router]);
+
+  useEffect(() => {
+    fetchCurrentSemester();
+  }, [fetchCurrentSemester]);
 
   const handleArchive = async () => {
     if (!currentSemester || !archiveName.trim()) {

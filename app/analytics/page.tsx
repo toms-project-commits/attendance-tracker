@@ -19,7 +19,7 @@ import Link from 'next/link';
 import { format, parseISO } from 'date-fns';
 import { clsx } from 'clsx';
 import useStudentData from '@/lib/hooks/useStudentData';
-import { calculateAttendance, type SubjectStats } from '@/lib/utils/attendanceCalculations';
+import { calculateAttendance } from '@/lib/utils/attendanceCalculations';
 
 export default function AnalyticsPage() {
   const router = useRouter();

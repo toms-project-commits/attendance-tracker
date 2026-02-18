@@ -72,9 +72,9 @@ export default function UpdatePassword() {
       if (error) {
         setMessage({ text: error.message, type: 'error' });
       } else {
-        setMessage({ text: "Password updated successfully! Redirecting to login...", type: 'success' });
+        setMessage({ text: "Password updated successfully! Redirecting to dashboard...", type: 'success' });
         setTimeout(() => {
-          router.push('/login');
+          router.push('/dashboard');
         }, 2000);
       }
     } catch (err) {

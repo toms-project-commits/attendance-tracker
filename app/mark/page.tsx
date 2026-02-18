@@ -369,6 +369,18 @@ export default function MarkAttendancePage() {
       return;
     }
 
+    // B-14: Prevent duplicate extra classes (same subject + overlapping time on the same date)
+    const duplicate = classes.find(
+      (c) =>
+        c.is_extra &&
+        c.subject_id === selectedSubjectId &&
+        c.start_time === extraStartTime
+    );
+    if (duplicate) {
+      alert(`An extra class for this subject at ${extraStartTime} already exists.`);
+      return;
+    }
+
     const selectedSubject = subjects.find(s => s.id === selectedSubjectId);
     if (!selectedSubject) return;
 

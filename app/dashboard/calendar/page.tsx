@@ -1,118 +1,30 @@
 'use client';
 
-import { useEffect, useState, useMemo } from 'react';
-import { useRouter } from 'next/navigation';
-import { supabase } from '@/lib/supabase';
+import { useMemo } from 'react';
+import useStudentData from '@/lib/hooks/useStudentData';
 import AttendanceCalendar from '@/components/AttendanceCalendar';
-import { Loader2, Calendar as CalendarIcon, ArrowLeft } from 'lucide-react';
+import { Loader2, Calendar as CalendarIcon, ArrowLeft, RefreshCw } from 'lucide-react';
 import Link from 'next/link';
 import { clsx } from 'clsx';
 
-interface AttendanceLog {
-  date: string;
-  status: string;
-  subject_id: string;
-}
-
-interface Holiday {
-  date: string;
-}
-
-interface Profile {
-  semester_start: string;
-  semester_end: string;
-  saturday_offs: number[];
-}
-
+// B-09: Calendar now uses useStudentData (shared hook with caching) instead
+// of an independent Supabase fetch, preventing stale-data mismatches with
+// the dashboard when attendance is marked between page navigations.
 export default function CalendarPage() {
-  const router = useRouter();
-  const [loading, setLoading] = useState(true);
-  const [logs, setLogs] = useState<AttendanceLog[]>([]);
-  const [holidays, setHolidays] = useState<Holiday[]>([]);
-  const [profile, setProfile] = useState<Profile | null>(null);
-  const [error, setError] = useState<string | null>(null);
+  const { profile, logs, holidays, loading, error, refresh } = useStudentData();
 
-  useEffect(() => {
-    async function loadData() {
-      try {
-        // Check authentication
-        const { data: { user } } = await supabase.auth.getUser();
-        
-        if (!user) {
-          router.push('/login');
-          return;
-        }
-
-        // Fetch profile with semester info
-        const { data: profileData, error: profileError } = await supabase
-          .from('profiles')
-          .select('semester_start, semester_end, saturday_offs')
-          .eq('id', user.id)
-          .single();
-
-        if (profileError) throw profileError;
-
-        if (!profileData?.semester_start || !profileData?.semester_end) {
-          setError('Please complete your setup to view the calendar');
-          setLoading(false);
-          return;
-        }
-
-        setProfile(profileData as Profile);
-
-        // Fetch attendance logs for the active semester
-        const { data: logsData, error: logsError } = await supabase
-          .from('attendance_logs')
-          .select('date, status, subject_id')
-          .eq('user_id', user.id)
-          .gte('date', profileData.semester_start)
-          .lte('date', profileData.semester_end)
-          .order('date', { ascending: true });
-
-        if (logsError) throw logsError;
-
-        setLogs(logsData || []);
-
-        // Fetch holidays
-        const { data: holidaysData, error: holidaysError } = await supabase
-          .from('holidays')
-          .select('date')
-          .eq('user_id', user.id)
-          .gte('date', profileData.semester_start)
-          .lte('date', profileData.semester_end)
-          .order('date', { ascending: true });
-
-        if (holidaysError) throw holidaysError;
-
-        setHolidays(holidaysData || []);
-
-      } catch (err) {
-        console.error('Error loading calendar data:', err);
-        setError('Failed to load calendar data');
-      } finally {
-        setLoading(false);
-      }
-    }
-
-    loadData();
-  }, [router]);
-
-  // Calculate attendance stats
   const stats = useMemo(() => {
     if (!logs.length) return { present: 0, absent: 0, cancelled: 0, total: 0 };
-
-    const present = logs.filter(log => log.status === 'PRESENT').length;
-    const absent = logs.filter(log => log.status === 'ABSENT').length;
-    const cancelled = logs.filter(log => log.status === 'CANCELLED').length;
-    const total = present + absent;
-
-    return { present, absent, cancelled, total };
+    const present  = logs.filter(l => l.status === 'PRESENT').length;
+    const absent   = logs.filter(l => l.status === 'ABSENT').length;
+    const cancelled = logs.filter(l => l.status === 'CANCELLED').length;
+    return { present, absent, cancelled, total: present + absent };
   }, [logs]);
 
   if (loading) {
     return (
       <div className="min-h-screen flex items-center justify-center" style={{ background: 'var(--background)' }}>
-        <div className="border-[3px] border-black bg-yellow-400 p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white animate-pulse">
+        <div className="border-[3px] border-black bg-yellow-400 p-8 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white">
           <Loader2 className="animate-spin mx-auto mb-2 text-black" size={32} />
           <p className="font-black text-black">Loading calendar...</p>
         </div>
@@ -120,14 +32,14 @@ export default function CalendarPage() {
     );
   }
 
-  if (error || !profile) {
+  if (error || !profile?.semester_start || !profile?.semester_end) {
     return (
       <div className="min-h-screen flex items-center justify-center p-4" style={{ background: 'var(--background)' }}>
         <div className="max-w-md w-full">
           <div className="border-[3px] border-black bg-red-400 p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white text-center">
             <h2 className="text-2xl font-black text-black mb-4">⚠️ Setup Required</h2>
             <p className="text-base font-bold text-black mb-6">
-              {error || 'Unable to load calendar data'}
+              {error || 'Please complete your semester setup to view the calendar.'}
             </p>
             <Link
               href="/setup"
@@ -162,6 +74,22 @@ export default function CalendarPage() {
           <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
             <CalendarIcon size={24} /> Attendance Calendar
           </h1>
+          {/* Refresh uses forceRefresh=true to bypass the 5-min cache */}
+          <button
+            onClick={() => refresh(true)}
+            className={clsx(
+              "p-2 border-[3px] border-black bg-white",
+              "shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]",
+              "hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
+              "active:translate-x-[3px] active:translate-y-[3px] active:shadow-none",
+              "transition-all duration-150",
+              "dark:bg-slate-700 dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]"
+            )}
+            title="Refresh calendar data"
+            aria-label="Refresh calendar data"
+          >
+            <RefreshCw size={18} className="text-black dark:text-white" />
+          </button>
         </div>
       </nav>
 
