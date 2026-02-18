@@ -3,7 +3,7 @@ import { useState, useEffect, useCallback } from 'react';
 import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import Link from 'next/link';
-import { ChevronRight, Calendar as CalIcon, Info, AlertCircle, User, Loader2 } from 'lucide-react';
+import { ChevronRight, Calendar as CalIcon, Info, AlertCircle, User, Loader2, LogOut } from 'lucide-react';
 import { 
   eachDayOfInterval, 
   endOfMonth, 
@@ -227,6 +227,11 @@ export default function SetupPage() {
     return months;
   };
 
+  const handleSignOut = async () => {
+    await supabase.auth.signOut();
+    router.push('/login');
+  };
+
   const ordinalSuffix = ["", "1st", "2nd", "3rd", "4th", "5th"];
 
   return (
@@ -234,10 +239,29 @@ export default function SetupPage() {
       <div className="max-w-3xl w-full">
         {/* HEADER CARD */}
         <div className="border-[3px] border-black bg-blue-500 p-6 md:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white mb-6">
-          <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
-            <CalIcon size={32} /> Semester Setup
-          </h1>
-          <p className="text-white/80 mt-2 font-semibold">Let&apos;s configure your academic calendar</p>
+          <div className="flex items-start justify-between gap-4">
+            <div>
+              <h1 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3">
+                <CalIcon size={32} /> Semester Setup
+              </h1>
+              <p className="text-white/80 mt-2 font-semibold">Let&apos;s configure your academic calendar</p>
+            </div>
+            <button
+              onClick={handleSignOut}
+              className={clsx(
+                "flex items-center gap-2 px-3 py-2 text-sm font-black",
+                "border-[3px] border-white bg-white/20 text-white",
+                "shadow-[3px_3px_0px_0px_rgba(255,255,255,0.5)]",
+                "hover:bg-white/30 hover:-translate-x-[1px] hover:-translate-y-[1px]",
+                "active:translate-x-[2px] active:translate-y-[2px] active:shadow-none",
+                "transition-all duration-150 shrink-0"
+              )}
+              title="Sign out and go to login"
+            >
+              <LogOut size={16} />
+              <span className="hidden sm:inline">Sign Out</span>
+            </button>
+          </div>
         </div>
 
         {checkingAuth ? (
@@ -388,7 +412,7 @@ export default function SetupPage() {
               <div className="flex gap-2 items-start">
                 <Info className="shrink-0 mt-0.5 text-black dark:text-blue-400" size={16} />
                 <p className="text-xs font-bold text-black dark:text-blue-300">
-                  Select which Saturdays are holidays (e.g., &quot;2nd & 4th Saturdays off&quot;)
+                  Select which Saturdays are holidays (e.g., &quot;2nd &amp; 4th Saturdays off&quot;)
                 </p>
               </div>
             </div>
@@ -529,7 +553,7 @@ export default function SetupPage() {
             {loading ? (
               <>Setting up... <Loader2 className="animate-spin" size={24} /></>
             ) : (
-              <>🚀 Save & Continue <ChevronRight size={24} /></>
+              <>🚀 Save &amp; Continue <ChevronRight size={24} /></>
             )}
           </button>
 

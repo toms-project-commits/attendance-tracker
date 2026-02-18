@@ -16,11 +16,20 @@ export default function Home() {
       }
 
       // Check if profile exists
-      const { data: profile } = await supabase
+      const { data: profile, error: profileError } = await supabase
         .from('profiles')
         .select('semester_start')
         .eq('id', user.id)
         .single();
+
+      // PGRST116 = "no rows found" (new user, needs setup)
+      // Any other error means a real problem (RLS/network) — send to dashboard
+      // rather than incorrectly bouncing to /setup
+      if (profileError && profileError.code !== 'PGRST116') {
+        console.error('Profile query error:', profileError);
+        router.push('/dashboard');
+        return;
+      }
 
       if (profile?.semester_start) {
         router.push('/dashboard');
