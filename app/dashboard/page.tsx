@@ -18,11 +18,11 @@ import {
   Rocket,
   Users,
   UserCircle,
-  Shield,
   CalendarDays,
   Hand,
 } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { clsx } from 'clsx';
 import useStudentData from '@/lib/hooks/useStudentData';
 import { calculateAttendance } from '@/lib/utils/attendanceCalculations';
@@ -221,7 +221,7 @@ const Dashboard = memo(function Dashboard() {
       {/* TOP NAVIGATION */}
       <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-4 flex justify-center items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
         <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
-          <Shield size={28} className="text-blue-500" />
+          <Image src="/logo.png" alt="BunkSafe" width={32} height={32} className="rounded-sm" />
           BunkSafe
         </h1>
       </nav>

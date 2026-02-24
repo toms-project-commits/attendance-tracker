@@ -4,6 +4,7 @@ import { supabase } from '@/lib/supabase';
 import { useRouter } from 'next/navigation';
 import { Loader2, Mail, Lock, Eye, EyeOff } from 'lucide-react';
 import Link from 'next/link';
+import Image from 'next/image';
 import { clsx } from 'clsx';
 import { getRedirectUrl } from '@/lib/config';
 import { isNativePlatform } from '@/lib/capacitor';
@@ -266,8 +267,9 @@ export default function LoginPage() {
         <div className="border-[3px] border-black bg-white p-8 shadow-[8px_8px_0px_0px_rgba(0,0,0,1)] dark:bg-slate-800 dark:border-white dark:shadow-[8px_8px_0px_0px_rgba(255,255,255,1)]">
           {/* Header */}
           <div className="text-center mb-8">
-            <div className="inline-block border-[3px] border-black bg-blue-500 px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 dark:border-white">
-              <h1 className="text-3xl md:text-4xl font-black text-white"> BunkSafe</h1>
+            <div className="inline-flex items-center gap-3 border-[3px] border-black bg-blue-500 px-6 py-3 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] mb-4 dark:border-white">
+              <Image src="/logo.png" alt="BunkSafe Logo" width={40} height={40} className="rounded-sm" />
+              <h1 className="text-3xl md:text-4xl font-black text-white">BunkSafe</h1>
             </div>
             <p className="text-lg font-bold text-black dark:text-white mt-4">
               {isSignUp ? "Create your account" : "Welcome back!"}
