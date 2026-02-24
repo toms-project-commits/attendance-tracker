@@ -13,13 +13,13 @@ import {
   TrendingUp,
   Zap,
   Image as ImageIcon,
-  Target,
   Loader2,
   Rocket,
   Users,
   UserCircle,
   CalendarDays,
   Hand,
+  GraduationCap,
 } from 'lucide-react';
 import Link from 'next/link';
 import Image from 'next/image';
@@ -27,116 +27,9 @@ import { clsx } from 'clsx';
 import useStudentData from '@/lib/hooks/useStudentData';
 import { calculateAttendance } from '@/lib/utils/attendanceCalculations';
 
-interface QuickStatProps {
-  label: string;
-  value: string | number;
-  sublabel: string;
-  bgColor: string;
-  textColor?: string;
-  icon?: React.ReactNode;
-}
-
 const calculateAttendancePercentage = (attended: number, total: number): number => {
   return total > 0 ? Math.round((attended / total) * 100) : 0;
 };
-
-const QuickStat = memo<QuickStatProps>(({ label, value, sublabel, bgColor, textColor = 'text-black', icon }) => (
-  <div 
-    className={clsx(
-      "border-[3px] border-black p-5 transition-all duration-200",
-      "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
-      "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-      "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
-      "dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-      bgColor
-    )}
-  >
-    <div className="flex items-start justify-between mb-2">
-      <span className={clsx("text-xs font-black uppercase tracking-wider", textColor)}>{label}</span>
-      {icon && <span className={clsx("opacity-70", textColor)}>{icon}</span>}
-    </div>
-    <div className={clsx("text-4xl font-black", textColor)}>{value}</div>
-    <div className={clsx("text-sm mt-1 font-semibold opacity-80", textColor)}>{sublabel}</div>
-  </div>
-));
-
-QuickStat.displayName = 'QuickStat';
-
-// Neo-Brutalism Button Component
-const BrutalButton = memo(({ 
-  children, 
-  onClick, 
-  className = '', 
-  variant = 'default',
-  href
-}: { 
-  children: React.ReactNode; 
-  onClick?: () => void; 
-  className?: string;
-  variant?: 'default' | 'primary' | 'danger' | 'success';
-  href?: string;
-}) => {
-  const baseClasses = clsx(
-    "inline-flex items-center justify-center px-6 py-3 font-bold text-base",
-    "border-[3px] border-black",
-    "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-    "transition-all duration-150",
-    "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
-    "active:translate-x-[4px] active:translate-y-[4px] active:shadow-none",
-    "dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
-    "dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-    "dark:active:shadow-none",
-    {
-      'bg-white text-black dark:bg-slate-800 dark:text-white': variant === 'default',
-      'bg-blue-500 text-white hover:bg-blue-600': variant === 'primary',
-      'bg-red-500 text-white hover:bg-red-600': variant === 'danger',
-      'bg-green-500 text-white hover:bg-green-600': variant === 'success',
-    },
-    className
-  );
-
-  if (href) {
-    return <Link href={href} className={baseClasses}>{children}</Link>;
-  }
-
-  return <button onClick={onClick} className={baseClasses}>{children}</button>;
-});
-
-BrutalButton.displayName = 'BrutalButton';
-
-// Neo-Brutalism Card Component
-const BrutalCard = memo(({ 
-  children, 
-  className = '',
-  hoverable = true,
-  as = 'div'
-}: { 
-  children: React.ReactNode; 
-  className?: string;
-  hoverable?: boolean;
-  as?: 'div' | 'article' | 'section';
-}) => {
-  const Component = as;
-  return (
-    <Component 
-      className={clsx(
-        "border-[3px] border-black bg-white p-6",
-        "shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]",
-        "dark:bg-slate-800 dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]",
-        hoverable && [
-          "transition-all duration-200",
-          "hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)]",
-          "dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]"
-        ],
-        className
-      )}
-    >
-      {children}
-    </Component>
-  );
-});
-
-BrutalCard.displayName = 'BrutalCard';
 
 const Dashboard = memo(function Dashboard() {
   const router = useRouter();
@@ -152,32 +45,24 @@ const Dashboard = memo(function Dashboard() {
     checkAuth();
   }, [checkAuth]);
 
-  // Force refresh when coming from mark page
   useEffect(() => {
     if (typeof window !== 'undefined') {
       const searchParams = new URLSearchParams(window.location.search);
       if (searchParams.has('refresh')) {
-        refresh(true); // Force refresh to bypass cache
-        // Clean up URL
+        refresh(true);
         window.history.replaceState({}, '', window.location.pathname);
       }
     }
   }, [refresh]);
 
   const userName = useMemo(() => {
-    if (profile?.username) {
-      return profile.username;
-    }
+    if (profile?.username) return profile.username;
     return user?.email?.split('@')[0] || 'Student';
   }, [user, profile]);
 
-  // Use centralized calculation logic - ensures consistency with Analytics page
   const stats = useMemo(() => {
     const result = calculateAttendance(profile, subjects, timetable, holidays, logs);
-    return {
-      attended: result.overall.attended,
-      total: result.overall.total
-    };
+    return { attended: result.overall.attended, total: result.overall.total };
   }, [profile, subjects, timetable, holidays, logs]);
 
   const todayClasses = useMemo(() => {
@@ -192,15 +77,11 @@ const Dashboard = memo(function Dashboard() {
 
   const handleLogout = useCallback(async () => {
     try {
-      const { error } = await supabase.auth.signOut();
-      if (error) {
-        console.error('Error signing out:', error);
-      }
-      router.push('/login');
+      await supabase.auth.signOut();
     } catch (error) {
       console.error('Unexpected error signing out:', error);
-      router.push('/login');
     }
+    router.push('/login');
   }, [router]);
 
   if (dataLoading) {
@@ -216,165 +97,135 @@ const Dashboard = memo(function Dashboard() {
     );
   }
 
+  // Determine status color for hero card
+  const heroColor = stats.total === 0
+    ? 'bg-blue-500'
+    : isSafe
+      ? 'bg-green-500'
+      : 'bg-red-500';
+
+  const statusSub = stats.total === 0
+    ? 'Set up subjects & timetable to begin'
+    : isSafe
+      ? `${attendancePercent}% — Keep it up!`
+      : `${attendancePercent}% — Attend more classes!`;
+
   return (
-    <div className="min-h-screen pb-24">
-      {/* TOP NAVIGATION */}
-      <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-4 flex justify-center items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
+    <div className="min-h-screen pb-8">
+
+      {/* ── TOP NAV ── */}
+      <nav className="bg-white dark:bg-slate-800 border-b-[3px] border-black dark:border-white px-4 md:px-6 py-3 flex justify-between items-center sticky top-0 z-50 shadow-[0_4px_0px_0px_rgba(0,0,0,1)] dark:shadow-[0_4px_0px_0px_rgba(255,255,255,1)]">
         <h1 className="text-xl md:text-2xl font-black text-black dark:text-white flex items-center gap-2">
           <Image src="/logo.png" alt="BunkSafe" width={32} height={32} className="rounded-sm" />
           BunkSafe
         </h1>
+        <div className="flex items-center gap-2">
+          <Link
+            href="/profile"
+            className={clsx(
+              'flex items-center gap-2 px-3 py-2 border-[3px] border-black bg-white font-black text-sm',
+              'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]',
+              'hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+              'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all duration-150',
+              'dark:bg-slate-700 dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]'
+            )}
+          >
+            <UserCircle size={18} className="text-black dark:text-white" />
+            <span className="hidden sm:inline text-black dark:text-white">{userName}</span>
+          </Link>
+          <button
+            onClick={handleLogout}
+            className={clsx(
+              'p-2 border-[3px] border-black bg-red-500 text-white',
+              'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]',
+              'hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+              'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all duration-150',
+              'dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]'
+            )}
+            title="Sign out"
+          >
+            <LogOut size={18} />
+          </button>
+        </div>
       </nav>
 
-      {/* MAIN CONTENT */}
       <main className="p-4 md:p-6 lg:p-8 space-y-6 max-w-7xl mx-auto">
-        {/* WELCOME BANNER */}
-        <div className="border-[3px] border-black bg-blue-500 text-white p-6 md:p-8 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white">
-          <div className="flex items-center justify-between gap-6 flex-col lg:flex-row">
+
+        {/* ── HERO: WELCOME + STATUS + QUICK STATS ── */}
+        <div className={clsx(
+          'border-[3px] border-black p-5 md:p-7',
+          'shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+          heroColor
+        )}>
+          <div className="flex flex-col lg:flex-row lg:items-center gap-6">
+
+            {/* Left: greeting + status */}
             <div className="flex-1 min-w-0">
-              <h2 className="text-3xl md:text-4xl font-black mb-3 break-words flex items-center gap-3 flex-wrap">
-                Welcome back, {userName}!
-                <Hand size={36} className="inline-block" />
+              <h2 className="text-2xl md:text-3xl font-black text-white flex items-center gap-3 flex-wrap mb-1">
+                Hey, {userName}! <Hand size={28} className="inline-block" />
               </h2>
-              <p className="text-lg md:text-xl font-bold opacity-90">
-                Track every class. Own your attendance. No excuses.
-              </p>
+              <p className="text-white/90 font-bold text-base mb-4">{statusSub}</p>
+
+              {/* Inline stats row */}
+              <div className="grid grid-cols-3 gap-3">
+                <div className="bg-white/20 border-[2px] border-white p-3 text-center">
+                  <div className="text-2xl font-black text-white">{subjectCount}</div>
+                  <div className="text-xs font-bold text-white/80 uppercase">Subjects</div>
+                </div>
+                <div className="bg-white/20 border-[2px] border-white p-3 text-center">
+                  <div className="text-2xl font-black text-white">{todayClasses}</div>
+                  <div className="text-xs font-bold text-white/80 uppercase">Today</div>
+                </div>
+                <div className="bg-white/20 border-[2px] border-white p-3 text-center">
+                  <div className="text-2xl font-black text-white">
+                    {stats.total > 0 ? `${attendancePercent}%` : '--'}
+                  </div>
+                  <div className="text-xs font-bold text-white/80 uppercase">
+                    {stats.total > 0 ? `${stats.attended}/${stats.total}` : 'No data'}
+                  </div>
+                </div>
+              </div>
             </div>
 
-            {/* Attendance Circle - Prominent Display */}
+            {/* Right: attendance ring (only when there's data) */}
             {stats.total > 0 && (
-              <div className="relative w-36 h-36 md:w-44 md:h-44 shrink-0 border-[3px] border-white rounded-full bg-white/10 p-2">
+              <div className="relative w-32 h-32 md:w-40 md:h-40 shrink-0 mx-auto lg:mx-0 border-[3px] border-white rounded-full bg-white/10 p-2">
                 <svg viewBox="0 0 36 36" className="w-full h-full -rotate-90">
-                  <path 
-                    className="text-white/30" 
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="3" 
+                  <path
+                    className="text-white/30"
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none" stroke="currentColor" strokeWidth="3"
                   />
-                  <path 
-                    className={clsx(
-                      "transition-all duration-1000 ease-out",
-                      attendancePercent >= 75 ? "text-green-400" : "text-red-400"
-                    )} 
-                    strokeDasharray={`${attendancePercent}, 100`} 
-                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831" 
-                    fill="none" 
-                    stroke="currentColor" 
-                    strokeWidth="3" 
-                    strokeLinecap="round"
+                  <path
+                    className={clsx('transition-all duration-1000', attendancePercent >= 75 ? 'text-white' : 'text-yellow-300')}
+                    strokeDasharray={`${attendancePercent}, 100`}
+                    d="M18 2.0845 a 15.9155 15.9155 0 0 1 0 31.831 a 15.9155 15.9155 0 0 1 0 -31.831"
+                    fill="none" stroke="currentColor" strokeWidth="3" strokeLinecap="round"
                   />
                 </svg>
                 <div className="absolute inset-0 flex flex-col items-center justify-center">
-                  <span className="text-xs font-black uppercase tracking-wider">Semester</span>
-                  <span className="text-4xl font-black">{attendancePercent}%</span>
+                  <span className="text-xs font-black text-white/80 uppercase">Overall</span>
+                  <span className="text-3xl md:text-4xl font-black text-white">{attendancePercent}%</span>
+                  <span className="text-xs font-bold text-white/70">
+                    {isSafe ? '✓ Safe' : '⚠ At Risk'}
+                  </span>
                 </div>
               </div>
             )}
           </div>
         </div>
 
-        {/* QUICK STATS - Bento Grid */}
-        <div className="grid grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          <QuickStat
-            label="Attendance"
-            value={stats.total > 0 ? `${attendancePercent}%` : '--'}
-            sublabel={`${stats.attended}/${stats.total} classes`}
-            bgColor="bg-blue-400"
-            textColor="text-black"
-            icon={<TrendingUp size={20} />}
-          />
-          <QuickStat
-            label="Today"
-            value={todayClasses}
-            sublabel="classes scheduled"
-            bgColor="bg-purple-400"
-            textColor="text-black"
-            icon={<Calendar size={20} />}
-          />
-          <QuickStat
-            label="Subjects"
-            value={subjectCount}
-            sublabel="being tracked"
-            bgColor="bg-orange-400"
-            textColor="text-black"
-            icon={<BookOpen size={20} />}
-          />
-          <QuickStat
-            label="Status"
-            value={stats.total === 0 ? 'NEW' : isSafe ? 'SAFE' : 'AT RISK'}
-            sublabel={stats.total === 0 ? 'setup needed' : isSafe ? 'keep going!' : 'act now!'}
-            bgColor={stats.total === 0 ? "bg-yellow-400" : isSafe ? "bg-green-400" : "bg-red-500"}
-            textColor={isSafe || stats.total === 0 ? "text-black" : "text-white"}
-            icon={<Zap size={20} />}
-          />
-        </div>
-
-        {/* STATUS INDICATOR */}
-        <div 
-          className={clsx(
-            "border-[3px] border-black p-5 md:p-6 shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]",
-            isSafe ? "bg-green-400" : "bg-red-500"
-          )}
-        >
-          <div className="flex items-center gap-4">
-            <div className={clsx(
-              "w-14 h-14 md:w-16 md:h-16 border-[3px] border-black flex items-center justify-center shrink-0",
-              isSafe ? "bg-green-600" : "bg-red-700"
-            )}>
-              {isSafe ? (
-                <CheckCircle size={32} className="text-white" />
-              ) : (
-                <AlertTriangle size={32} className="text-white" />
-              )}
-            </div>
-            <div className="flex-1">
-              <h3 className={clsx(
-                "text-2xl md:text-3xl font-black flex items-center gap-2",
-                isSafe ? "text-black" : "text-white"
-              )}>
-                {stats.total === 0 ? (
-                  <><Rocket size={28} /> READY TO START</>
-                ) : isSafe ? (
-                  <>
-                    <CheckCircle size={28} /> YOU&apos;RE SAFE
-                  </>
-                ) : (
-                  <>
-                    <AlertTriangle size={28} /> CRITICAL
-                  </>
-                )}
-              </h3>
-              <p className={clsx(
-                "text-base md:text-lg font-bold",
-                isSafe ? "text-black/80" : "text-white/90"
-              )}>
-                {stats.total === 0 
-                  ? "Set up your subjects and timetable to begin tracking" 
-                  : isSafe 
-                    ? `Attendance at ${attendancePercent}% - Keep it up!`
-                    : `Attendance at ${attendancePercent}% - You need to attend more classes!`
-                }
-              </p>
-            </div>
-          </div>
-        </div>
-
-        {/* MARK ATTENDANCE - Primary CTA */}
+        {/* ── MARK ATTENDANCE CTA ── */}
         <Link href="/mark" className="block group">
           <div className="border-[3px] border-black bg-black text-white p-5 md:p-6 shadow-[6px_6px_0px_0px_rgba(251,191,36,1)] transition-all duration-200 hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[8px_8px_0px_0px_rgba(251,191,36,1)] active:translate-x-[4px] active:translate-y-[4px] active:shadow-none dark:bg-slate-700 dark:border-white">
             <div className="flex items-center justify-between">
-              <div className="flex items-center gap-4 md:gap-6">
-                <div className="w-14 h-14 md:w-16 md:h-16 bg-yellow-400 border-[3px] border-white flex items-center justify-center group-hover:bg-yellow-300 transition-colors shrink-0">
-                  <CheckCircle size={28} className="text-black" />
+              <div className="flex items-center gap-4 md:gap-5">
+                <div className="w-12 h-12 md:w-14 md:h-14 bg-yellow-400 border-[3px] border-white flex items-center justify-center group-hover:bg-yellow-300 transition-colors shrink-0">
+                  <CheckCircle size={26} className="text-black" />
                 </div>
                 <div>
-                  <h3 className="text-xl md:text-2xl font-black mb-1">
-                    Mark Today&apos;s Attendance →
-                  </h3>
-                  <p className="text-sm md:text-base font-semibold text-white/80">
-                    Tap here to log your classes for today
-                  </p>
+                  <h3 className="text-xl md:text-2xl font-black mb-0.5">Mark Today&apos;s Attendance →</h3>
+                  <p className="text-sm font-semibold text-white/80">Tap to log your classes</p>
                 </div>
               </div>
               <ChevronRight size={28} className="hidden md:block" />
@@ -382,214 +233,240 @@ const Dashboard = memo(function Dashboard() {
           </div>
         </Link>
 
-        {/* HELPFUL TIP / ONBOARDING */}
+        {/* ── ONBOARDING HINT (only when brand new) ── */}
         {stats.total === 0 && subjectCount === 0 && (
-          <BrutalCard className="bg-yellow-400" hoverable={false}>
+          <div className="border-[3px] border-black bg-yellow-400 p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white">
             <div className="flex items-start gap-4">
-              <div className="w-12 h-12 bg-blue-500 border-[3px] border-black flex items-center justify-center shrink-0">
-                <Rocket size={24} className="text-white" />
+              <div className="w-10 h-10 bg-blue-500 border-[3px] border-black flex items-center justify-center shrink-0">
+                <Rocket size={20} className="text-white" />
               </div>
               <div className="flex-1">
-                <h3 className="text-xl font-black text-black mb-2">Get Started</h3>
-                <p className="text-black text-sm font-semibold mb-4">
-                  Start by adding your subjects and setting up your timetable to begin tracking attendance.
+                <h3 className="text-lg font-black text-black mb-1">Get Started</h3>
+                <p className="text-black text-sm font-semibold mb-3">
+                  Add your subjects and set up your timetable to begin tracking attendance.
                 </p>
                 <div className="flex flex-wrap gap-3">
-                  <BrutalButton href="/subjects" variant="primary" className="text-sm py-2 px-4">
-                    <BookOpen size={16} className="mr-2" /> Add Subjects
-                  </BrutalButton>
-                  <BrutalButton href="/timetable" className="text-sm py-2 px-4">
-                    <CalendarDays size={16} className="mr-2" /> Setup Timetable
-                  </BrutalButton>
+                  <Link
+                    href="/subjects"
+                    className={clsx(
+                      'inline-flex items-center gap-2 px-4 py-2 border-[3px] border-black bg-blue-500 text-white font-black text-sm',
+                      'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]',
+                      'hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+                      'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all duration-150'
+                    )}
+                  >
+                    <BookOpen size={15} /> Add Subjects
+                  </Link>
+                  <Link
+                    href="/timetable"
+                    className={clsx(
+                      'inline-flex items-center gap-2 px-4 py-2 border-[3px] border-black bg-white text-black font-black text-sm',
+                      'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]',
+                      'hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+                      'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all duration-150'
+                    )}
+                  >
+                    <CalendarDays size={15} /> Setup Timetable
+                  </Link>
                 </div>
               </div>
             </div>
-          </BrutalCard>
+          </div>
         )}
 
-        {/* LOW ATTENDANCE WARNING */}
-        {stats.total > 0 && !isSafe && (
-          <BrutalCard className="bg-red-100 dark:bg-red-900/50" hoverable={false}>
-            <h3 className="text-2xl font-black text-red-600 dark:text-red-400 mb-4 flex items-center gap-2">
-              <AlertTriangle size={24} />
-              Attendance at Risk
-            </h3>
-            <p className="text-black dark:text-white text-lg font-semibold mb-6">
-              Your attendance is below 75%. Check your analytics to see which subjects need attention.
-            </p>
-            <BrutalButton href="/analytics" variant="danger">
-              <PieChart size={18} className="mr-2" /> View Analytics
-            </BrutalButton>
-          </BrutalCard>
-        )}
+        {/* ── FEATURE GRID ── */}
+        <div>
+          <h2 className="text-xl font-black text-black dark:text-white mb-4 flex items-center gap-2">
+            <Zap size={20} /> Quick Access
+          </h2>
 
-        {/* MANAGEMENT GRID - Bento Style */}
-        <h2 className="text-2xl font-black text-black dark:text-white pt-4 flex items-center gap-2">
-          <BookOpen size={24} />
-          Manage Your Classes
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-4 gap-4 md:gap-6">
-          {/* Card 1: Subjects */}
-          <Link href="/subjects" className="block">
-            <BrutalCard className="h-full bg-blue-100 dark:bg-blue-900/30 hover:bg-blue-200 dark:hover:bg-blue-900/50">
-              <div className="h-14 w-14 bg-blue-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <BookOpen size={28} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3 break-words">
-                Subjects
-              </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed break-words">
-                Add your classes and set attendance targets. Manage up to 10 subjects.
-              </p>
-            </BrutalCard>
-          </Link>
+          <div className="grid grid-cols-2 md:grid-cols-4 gap-4">
 
-          {/* Card 2: Timetable */}
-          <Link href="/timetable" className="block">
-            <BrutalCard className="h-full bg-purple-100 dark:bg-purple-900/30 hover:bg-purple-200 dark:hover:bg-purple-900/50">
-              <div className="h-14 w-14 bg-purple-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <CalendarDays size={28} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
-                Timetable
-              </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
-                Set your weekly schedule with breaks, sports, and study hours.
-              </p>
-            </BrutalCard>
-          </Link>
-
-          {/* Card 3: Calendar */}
-          <Link href="/dashboard/calendar" className="block">
-            <BrutalCard className="h-full bg-green-100 dark:bg-green-900/30 hover:bg-green-200 dark:hover:bg-green-900/50">
-              <div className="h-14 w-14 bg-green-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <Calendar size={28} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
-                Calendar
-              </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
-                View your monthly attendance calendar with color-coded dates.
-              </p>
-            </BrutalCard>
-          </Link>
-
-          {/* Card 4: Analytics */}
-          <Link href="/analytics" className="block">
-            <BrutalCard className="h-full bg-orange-100 dark:bg-orange-900/30 hover:bg-orange-200 dark:hover:bg-orange-900/50">
-              <div className="h-14 w-14 bg-orange-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <PieChart size={28} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
-                Analytics
-              </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
-                View detailed stats, track progress, and get actionable insights.
-              </p>
-            </BrutalCard>
-          </Link>
-        </div>
-
-        {/* ADDITIONAL FEATURES - Profile Featured */}
-        <h2 className="text-2xl font-black text-black dark:text-white pt-4 flex items-center gap-2">
-          <Target size={24} />
-          Additional Features
-        </h2>
-        <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-4 md:gap-6">
-          {/* Card 1: MY PROFILE - FEATURED & PROMINENT */}
-          <Link href="/profile" className="block md:col-span-2 lg:col-span-1">
-            <BrutalCard className="h-full bg-gradient-to-br from-indigo-400 to-purple-500 hover:from-indigo-500 hover:to-purple-600 relative overflow-hidden">
-              {/* Decorative Background Pattern */}
-              <div className="absolute top-0 right-0 w-32 h-32 bg-white/10 rounded-full -mr-16 -mt-16"></div>
-              <div className="absolute bottom-0 left-0 w-24 h-24 bg-black/10 rounded-full -ml-12 -mb-12"></div>
-              
-              <div className="relative z-10">
-                <div className="h-16 w-16 bg-white border-[3px] border-black flex items-center justify-center text-indigo-600 mb-5">
-                  <UserCircle size={32} strokeWidth={2.5} />
+            {/* Subjects */}
+            <Link href="/subjects" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-blue-100 dark:bg-blue-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-blue-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <BookOpen size={24} />
                 </div>
-                <h3 className="text-2xl md:text-3xl font-black text-white mb-3 flex items-center gap-2">
-                  My Profile
-                  <span className="text-sm px-2 py-1 bg-yellow-400 text-black border-[2px] border-black">NEW</span>
-                </h3>
-                <p className="text-white text-base font-bold leading-relaxed mb-4">
-                  Manage your account, update username, customize settings, and view your semester progress.
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Subjects</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">
+                  {subjectCount > 0 ? `${subjectCount} subjects tracked` : 'Add your classes'}
                 </p>
-                <div className="flex items-center gap-2 text-white font-black text-sm">
-                  <span>VIEW PROFILE</span>
-                  <ChevronRight size={20} />
+              </div>
+            </Link>
+
+            {/* Timetable */}
+            <Link href="/timetable" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-purple-100 dark:bg-purple-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-purple-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <CalendarDays size={24} />
                 </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Timetable</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">Weekly schedule &amp; slots</p>
               </div>
-            </BrutalCard>
-          </Link>
-
-          {/* Card 2: Friends */}
-          <Link href="/friends" className="block">
-            <BrutalCard className="h-full bg-cyan-100 dark:bg-cyan-900/30 hover:bg-cyan-200 dark:hover:bg-cyan-900/50">
-              <div className="h-14 w-14 bg-cyan-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <Users size={28} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
-                Friends
-              </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
-                Connect with classmates and view their attendance to stay motivated together.
-              </p>
-            </BrutalCard>
-          </Link>
-
-          {/* Card 3: View Proofs */}
-          <Link href="/proofs" className="block">
-            <BrutalCard className="h-full bg-pink-100 dark:bg-pink-900/30 hover:bg-pink-200 dark:hover:bg-pink-900/50">
-              <div className="h-14 w-14 bg-pink-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-5">
-                <ImageIcon size={28} />
-              </div>
-              <h3 className="text-xl md:text-2xl font-black text-black dark:text-white mb-3">
-                View Proofs
-              </h3>
-              <p className="text-black dark:text-white text-base font-semibold leading-relaxed">
-                Browse GPS-verified attendance proofs organized by subject.
-              </p>
-            </BrutalCard>
-          </Link>
-        </div>
-
-        {/* About & Legal Links */}
-        <div className="text-center pt-6 pb-2">
-          <div className="flex items-center justify-center gap-4 flex-wrap">
-            <Link 
-              href="/about"
-              className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2"
-            >
-              About the Developer and Mission
             </Link>
-            <span className="text-gray-400 dark:text-gray-600">•</span>
-            <Link 
-              href="/legal"
-              className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors underline underline-offset-2"
-            >
-              Terms & Privacy Policy
+
+            {/* Calendar */}
+            <Link href="/dashboard/calendar" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-green-100 dark:bg-green-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-green-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <Calendar size={24} />
+                </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Calendar</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">Monthly attendance view</p>
+              </div>
             </Link>
+
+            {/* Analytics */}
+            <Link href="/analytics" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-orange-100 dark:bg-orange-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-orange-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <PieChart size={24} />
+                </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Analytics</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">
+                  {stats.total > 0 && !isSafe
+                    ? <span className="text-red-600 dark:text-red-400 flex items-center gap-1"><AlertTriangle size={12} /> Needs attention</span>
+                    : 'Stats & insights'
+                  }
+                </p>
+              </div>
+            </Link>
+
+            {/* Friends */}
+            <Link href="/friends" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-cyan-100 dark:bg-cyan-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-cyan-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <Users size={24} />
+                </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Friends</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">Compare with classmates</p>
+              </div>
+            </Link>
+
+            {/* View Proofs */}
+            <Link href="/proofs" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-pink-100 dark:bg-pink-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-pink-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <ImageIcon size={24} />
+                </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Proofs</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">Attendance proof photos</p>
+              </div>
+            </Link>
+
+            {/* Profile */}
+            <Link href="/profile" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-indigo-100 dark:bg-indigo-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-indigo-500 border-[3px] border-black dark:border-white flex items-center justify-center text-white mb-4">
+                  <UserCircle size={24} />
+                </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">Profile</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">Account &amp; settings</p>
+              </div>
+            </Link>
+
+            {/* New Semester */}
+            <Link href="/setup/reset" className="block">
+              <div className={clsx(
+                'border-[3px] border-black bg-yellow-100 dark:bg-yellow-900/30 p-5',
+                'shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]',
+                'hover:-translate-x-[2px] hover:-translate-y-[2px] hover:shadow-[6px_6px_0px_0px_rgba(0,0,0,1)] dark:hover:shadow-[6px_6px_0px_0px_rgba(255,255,255,1)]',
+                'transition-all duration-200 h-full'
+              )}>
+                <div className="w-12 h-12 bg-yellow-500 border-[3px] border-black dark:border-white flex items-center justify-center text-black mb-4">
+                  <GraduationCap size={24} />
+                </div>
+                <h3 className="text-lg font-black text-black dark:text-white mb-1">New Semester</h3>
+                <p className="text-sm font-semibold text-gray-600 dark:text-gray-400 leading-snug">Archive &amp; start fresh</p>
+              </div>
+            </Link>
+
           </div>
         </div>
 
-        {/* Attribution */}
-        <div className="text-center pt-3 pb-4">
-          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">
-            A project by Thomas George
-          </p>
+        {/* ── TRENDING STAT (only when attendance data exists and at risk) ── */}
+        {stats.total > 0 && !isSafe && (
+          <div className="border-[3px] border-black bg-red-100 dark:bg-red-900/30 p-5 shadow-[4px_4px_0px_0px_rgba(0,0,0,1)] dark:border-white dark:shadow-[4px_4px_0px_0px_rgba(255,255,255,1)]">
+            <div className="flex items-center gap-3">
+              <div className="w-10 h-10 bg-red-500 border-[3px] border-black dark:border-white flex items-center justify-center shrink-0">
+                <AlertTriangle size={20} className="text-white" />
+              </div>
+              <div className="flex-1">
+                <p className="font-black text-red-700 dark:text-red-400">Attendance below 75%</p>
+                <p className="text-sm font-semibold text-red-600 dark:text-red-500">
+                  {stats.attended}/{stats.total} classes attended. Check Analytics for details.
+                </p>
+              </div>
+              <Link
+                href="/analytics"
+                className={clsx(
+                  'shrink-0 flex items-center gap-1 px-4 py-2 border-[3px] border-black bg-red-500 text-white font-black text-sm',
+                  'shadow-[3px_3px_0px_0px_rgba(0,0,0,1)]',
+                  'hover:-translate-x-[1px] hover:-translate-y-[1px] hover:shadow-[4px_4px_0px_0px_rgba(0,0,0,1)]',
+                  'active:translate-x-[3px] active:translate-y-[3px] active:shadow-none transition-all duration-150',
+                  'dark:border-white dark:shadow-[3px_3px_0px_0px_rgba(255,255,255,1)]'
+                )}
+              >
+                <TrendingUp size={15} /> View
+              </Link>
+            </div>
+          </div>
+        )}
+
+        {/* ── FOOTER ── */}
+        <div className="text-center pt-4">
+          <div className="flex items-center justify-center gap-4 flex-wrap mb-2">
+            <Link href="/about" className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-blue-500 dark:hover:text-blue-400 transition-colors underline underline-offset-2">
+              About
+            </Link>
+            <span className="text-gray-400 dark:text-gray-600">•</span>
+            <Link href="/legal" className="text-sm font-bold text-gray-600 dark:text-gray-400 hover:text-green-500 dark:hover:text-green-400 transition-colors underline underline-offset-2">
+              Terms &amp; Privacy
+            </Link>
+          </div>
+          <p className="text-xs font-semibold text-gray-500 dark:text-gray-500">A project by Thomas George</p>
         </div>
 
-        {/* Sign Out Button */}
-        <div className="flex justify-center items-center pt-6 pb-8">
-          <BrutalButton onClick={handleLogout} variant="danger" className="px-8">
-            <LogOut size={18} className="mr-2" /> Sign Out
-          </BrutalButton>
-        </div>
       </main>
     </div>
   );
 });
 
 Dashboard.displayName = 'Dashboard';
-
 export default Dashboard;
