@@ -75,39 +75,23 @@ export default function useStudentData(): StudentDataResult {
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
 
-  // Upscaling improvements
   const abortControllerRef = useRef<AbortController | null>(null);
   const lastFetchTime = useRef<number>(0);
-  const cache = useRef<Map<string, { data: Omit<StudentDataResult, 'loading' | 'error' | 'refresh'>; timestamp: number }>>(new Map());
-  const CACHE_TTL = 5 * 60 * 1000; // 5 minutes
-  const RATE_LIMIT = 1000; // 1 second between requests
+  const userIdRef = useRef<string | null>(null);
+  const activeSemesterIdRef = useRef<string | null>(null);
+  // Debounce timer for real-time updates
+  const realtimeDebounceRef = useRef<ReturnType<typeof setTimeout> | null>(null);
+
+  const RATE_LIMIT = 500; // 0.5 seconds between full fetches
 
   const validateUserId = (userId: string): boolean => {
     return typeof userId === 'string' && userId.length > 0 && userId.length <= 255;
   };
 
   const fetchData = useCallback(async (forceRefresh = false) => {
-    const getCachedData = (key: string) => {
-      const cached = cache.current.get(key);
-      if (cached && Date.now() - cached.timestamp < CACHE_TTL) {
-        return cached.data;
-      }
-      return null;
-    };
-
-    const setCachedData = (key: string, data: Omit<StudentDataResult, 'loading' | 'error' | 'refresh'>) => {
-      cache.current.set(key, { data, timestamp: Date.now() });
-      // Clean up old cache entries
-      if (cache.current.size > 100) {
-        const oldestKey = cache.current.keys().next().value;
-        if (oldestKey) {
-          cache.current.delete(oldestKey);
-        }
-      }
-    };
     const now = Date.now();
 
-    // Rate limiting
+    // Rate limiting (skip for forced refreshes)
     if (!forceRefresh && now - lastFetchTime.current < RATE_LIMIT) {
       return;
     }
@@ -140,23 +124,8 @@ export default function useStudentData(): StudentDataResult {
       }
 
       setUser({ id: authUser.id, email: authUser.email });
+      userIdRef.current = authUser.id;
 
-      const cacheKey = `user_${authUser.id}`;
-      const cachedData = forceRefresh ? null : getCachedData(cacheKey);
-
-      if (cachedData) {
-        setProfile(cachedData.profile || null);
-        setActiveSemester(cachedData.activeSemester || null);
-        setSubjects(cachedData.subjects || []);
-        setTimetable(cachedData.timetable || []);
-        setHolidays(cachedData.holidays || []);
-        setLogs(cachedData.logs || []);
-        setLoading(false);
-        return;
-      }
-
-      // Parallel requests with timeout and error handling
-      // Accept a factory function so each retry creates a fresh query/promise.
       // eslint-disable-next-line @typescript-eslint/no-explicit-any
       const fetchWithRetry = async (queryFactory: () => PromiseLike<any>, retries = 3): Promise<any> => {
         for (let i = 0; i < retries; i++) {
@@ -175,7 +144,7 @@ export default function useStudentData(): StudentDataResult {
         }
       };
 
-      // Fetch active semester first (critical for filtering)
+      // Fetch active semester first
       const semesterRes = await fetchWithRetry(() =>
         supabase
           .from('semesters')
@@ -187,11 +156,12 @@ export default function useStudentData(): StudentDataResult {
 
       const activeSem = semesterRes?.data || null;
       const activeSemesterId = activeSem?.id || null;
+      activeSemesterIdRef.current = activeSemesterId;
 
       // Fetch all data in parallel, filtered by active semester if it exists
       const [profileRes, subRes, timeRes, holidayRes, logRes] = await Promise.allSettled([
         fetchWithRetry(() => supabase.from('profiles').select('*').eq('id', authUser.id).single()),
-        activeSemesterId 
+        activeSemesterId
           ? fetchWithRetry(() => supabase.from('subjects').select('*').eq('user_id', authUser.id).eq('semester_id', activeSemesterId).order('name'))
           : fetchWithRetry(() => supabase.from('subjects').select('*').eq('user_id', authUser.id).order('name')),
         activeSemesterId
@@ -203,7 +173,6 @@ export default function useStudentData(): StudentDataResult {
           : fetchWithRetry(() => supabase.from('attendance_logs').select('*').eq('user_id', authUser.id).order('date', { ascending: false }))
       ]);
 
-      // Handle partial failures gracefully
       const results = [profileRes, subRes, timeRes, holidayRes, logRes].map(result => {
         if (result.status === 'fulfilled') {
           return result.value;
@@ -215,7 +184,6 @@ export default function useStudentData(): StudentDataResult {
 
       const [profileData, subjectsData, timetableData, holidaysData, logsData] = results;
 
-      // Extract data (null-safe)
       const fetchedProfile = profileData.error ? null : profileData.data;
       const fetchedActiveSemester = activeSem || null;
       const fetchedSubjects = subjectsData.error ? [] : (subjectsData.data || []);
@@ -230,28 +198,13 @@ export default function useStudentData(): StudentDataResult {
       setHolidays(fetchedHolidays);
       setLogs(fetchedLogs);
 
-      // Cache successful results only if all queries succeeded
-      const allSuccessful = results.every(r => !r.error);
-      if (allSuccessful) {
-        setCachedData(cacheKey, {
-          user: { id: authUser.id, email: authUser.email },
-          profile: fetchedProfile,
-          activeSemester: fetchedActiveSemester,
-          subjects: fetchedSubjects,
-          timetable: fetchedTimetable,
-          holidays: fetchedHolidays,
-          logs: fetchedLogs
-        });
-      }
-
-      // Set error if any critical data failed to load
       if (profileData.error && subjectsData.error && timetableData.error) {
         throw new Error('Failed to load critical user data. Please try again.');
       }
 
     } catch (err) {
       if (err instanceof Error && err.name === 'AbortError') {
-        return; // Request was cancelled
+        return;
       }
       const message = err instanceof Error ? err.message : 'Failed to load dashboard data.';
       setError(message);
@@ -260,6 +213,34 @@ export default function useStudentData(): StudentDataResult {
       abortControllerRef.current = null;
     }
   // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
+
+  // Re-fetch only the attendance logs (lightweight, used by real-time updates)
+  const refreshLogs = useCallback(async () => {
+    const userId = userIdRef.current;
+    const activeSemesterId = activeSemesterIdRef.current;
+    if (!userId) return;
+
+    try {
+      const { data, error } = activeSemesterId
+        ? await supabase
+            .from('attendance_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .eq('semester_id', activeSemesterId)
+            .order('date', { ascending: false })
+        : await supabase
+            .from('attendance_logs')
+            .select('*')
+            .eq('user_id', userId)
+            .order('date', { ascending: false });
+
+      if (!error && data) {
+        setLogs(data);
+      }
+    } catch (err) {
+      console.error('Error refreshing logs:', err);
+    }
   }, []);
 
   useEffect(() => {
@@ -271,6 +252,38 @@ export default function useStudentData(): StudentDataResult {
     };
   }, [fetchData]);
 
+  // Set up real-time subscription for attendance_logs
+  useEffect(() => {
+    const channel = supabase
+      .channel('attendance_logs_changes')
+      .on(
+        'postgres_changes',
+        {
+          event: '*', // INSERT, UPDATE, DELETE
+          schema: 'public',
+          table: 'attendance_logs',
+        },
+        () => {
+          // Debounce: wait 300ms after the last change before refreshing
+          // This batches rapid successive changes (like marking all present)
+          if (realtimeDebounceRef.current) {
+            clearTimeout(realtimeDebounceRef.current);
+          }
+          realtimeDebounceRef.current = setTimeout(() => {
+            refreshLogs();
+          }, 300);
+        }
+      )
+      .subscribe();
+
+    return () => {
+      if (realtimeDebounceRef.current) {
+        clearTimeout(realtimeDebounceRef.current);
+      }
+      supabase.removeChannel(channel);
+    };
+  }, [refreshLogs]);
+
   return {
     user,
     profile,
@@ -281,6 +294,6 @@ export default function useStudentData(): StudentDataResult {
     logs,
     loading,
     error,
-    refresh: fetchData // fetchData already accepts forceRefresh parameter
+    refresh: fetchData
   };
 }

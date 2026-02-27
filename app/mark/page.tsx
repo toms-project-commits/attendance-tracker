@@ -255,6 +255,20 @@ export default function MarkAttendancePage() {
         return;
       }
 
+      // Fetch the active semester_id so logs are associated with the current semester
+      let activeSemesterId: string | null = null;
+      try {
+        const { data: semesterData } = await supabase
+          .from('semesters')
+          .select('id')
+          .eq('user_id', user.id)
+          .eq('is_active', true)
+          .maybeSingle();
+        activeSemesterId = semesterData?.id || null;
+      } catch {
+        // If semester fetch fails, proceed without it
+      }
+
       // Save proof images to local storage (IndexedDB)
       const logsWithProofs = await Promise.all(
         classes
@@ -291,6 +305,7 @@ export default function MarkAttendancePage() {
               start_time: c.is_extra ? c.start_time : null,
               end_time: c.is_extra ? c.end_time : null,
               proof_url: proofUrl || null,
+              semester_id: activeSemesterId,
             };
           })
       );
